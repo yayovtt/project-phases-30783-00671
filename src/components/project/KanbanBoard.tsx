@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, Circle, Clock, AlertCircle, MoreVertical, Plus, Settings, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, AlertCircle, MoreVertical, Plus, Settings, Trash2, Edit, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -24,6 +24,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { TaskManagementDialog } from './TaskManagementDialog';
+import { CategoryManagementDialog } from './CategoryManagementDialog';
+import { ReminderManager } from '@/components/reminders/ReminderManager';
 
 interface Task {
   id: string;
@@ -39,6 +42,8 @@ interface KanbanBoardProps {
   onStatusChange: (taskId: string, newStatus: string) => void;
   onTaskClick: (task: Task) => void;
   projectId?: string;
+  allTasks?: any[];
+  categories?: any[];
 }
 
 interface KanbanStatus {
@@ -65,7 +70,7 @@ const priorityColors = {
   urgent: 'bg-destructive text-white',
 };
 
-export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId }: KanbanBoardProps) => {
+export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, allTasks = [], categories = [] }: KanbanBoardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useIsAdmin();
@@ -73,6 +78,11 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId }: K
   const [manageDialogOpen, setManageDialogOpen] = useState(false);
   const [newStatusLabel, setNewStatusLabel] = useState('');
   const [newStatusColor, setNewStatusColor] = useState('#6B7280');
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [selectedProjectTaskId, setSelectedProjectTaskId] = useState<string | null>(null);
 
   const { data: statuses = [] } = useQuery({
     queryKey: ['kanban-statuses', projectId],
@@ -187,7 +197,11 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId }: K
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm">
+            <Plus className="h-4 w-4 ml-1" />
+            הוסף קטגוריה
+          </Button>
           <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -324,32 +338,49 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId }: K
                     }}
                     onClick={() => onTaskClick(task)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                     <CardContent className="p-4">
+                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h4 className="font-medium text-sm line-clamp-2">{task.name}</h4>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover z-50">
-                            {statuses.map((newStatus) => (
-                              newStatus.name !== statusConfig.name && (
-                                <DropdownMenuItem
-                                  key={newStatus.id}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onStatusChange(task.id, newStatus.name);
-                                  }}
-                                >
-                                  העבר ל{newStatus.label}
-                                </DropdownMenuItem>
-                              )
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                         <div className="flex gap-1">
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-6 w-6"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               const projectTask = tasks.find(t => t.id === task.id);
+                               if (projectTask) {
+                                 setSelectedProjectTaskId(projectTask.id);
+                                 setReminderDialogOpen(true);
+                               }
+                             }}
+                           >
+                             <Bell className="h-3 w-3" />
+                           </Button>
+                           <DropdownMenu>
+                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                               <Button variant="ghost" size="icon" className="h-6 w-6">
+                                 <MoreVertical className="h-4 w-4" />
+                               </Button>
+                             </DropdownMenuTrigger>
+                             <DropdownMenuContent align="end" className="bg-popover z-50">
+                               {statuses.map((newStatus) => (
+                                 newStatus.name !== statusConfig.name && (
+                                   <DropdownMenuItem
+                                     key={newStatus.id}
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       onStatusChange(task.id, newStatus.name);
+                                     }}
+                                   >
+                                     העבר ל{newStatus.label}
+                                   </DropdownMenuItem>
+                                 )
+                               ))}
+                             </DropdownMenuContent>
+                           </DropdownMenu>
+                         </div>
+                       </div>
 
                       <div className="flex items-center gap-2 flex-wrap">
                         {task.priority && (
@@ -379,6 +410,40 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId }: K
           );
         })}
       </div>
+
+      {/* Dialogs */}
+      {isAdmin && selectedCategoryId && allTasks && (
+        <TaskManagementDialog
+          isOpen={taskDialogOpen}
+          onClose={() => {
+            setTaskDialogOpen(false);
+            setSelectedCategoryId('');
+          }}
+          categoryId={selectedCategoryId}
+          categoryName={categories.find(c => c.id === selectedCategoryId)?.display_name || ''}
+          tasks={allTasks}
+        />
+      )}
+
+      {isAdmin && categories && (
+        <CategoryManagementDialog
+          isOpen={categoryDialogOpen}
+          onClose={() => setCategoryDialogOpen(false)}
+          categories={categories}
+        />
+      )}
+
+      {selectedProjectTaskId && (
+        <ReminderManager
+          projectTaskId={selectedProjectTaskId}
+          taskName={tasks.find(t => t.id === selectedProjectTaskId)?.name || ''}
+          isOpen={reminderDialogOpen}
+          onClose={() => {
+            setReminderDialogOpen(false);
+            setSelectedProjectTaskId(null);
+          }}
+        />
+      )}
     </div>
   );
 };

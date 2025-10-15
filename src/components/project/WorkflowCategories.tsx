@@ -354,6 +354,8 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
               priority: task.priority,
               dueDate: task.due_date,
             }))}
+            allTasks={tasks}
+            categories={categories}
             onStatusChange={async (taskId, newStatus) => {
               const projectTask = projectTasks?.find(pt => pt.task_id === taskId);
               if (projectTask) {
@@ -721,7 +723,11 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
         </TabsContent>
 
         <TabsContent value="roadmap">
-          <RoadmapView categories={categoriesWithTasks} />
+          <RoadmapView 
+            categories={categoriesWithTasks} 
+            projectId={projectId}
+            tasks={tasks}
+          />
         </TabsContent>
 
         <TabsContent value="spreadsheet" className="mt-6">

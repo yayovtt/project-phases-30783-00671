@@ -1,6 +1,14 @@
-import { CheckCircle2, Circle, ChevronLeft } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2, Circle, ChevronLeft, Plus, Edit, Bell } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { TaskManagementDialog } from '../TaskManagementDialog';
+import { CategoryManagementDialog } from '../CategoryManagementDialog';
+import { ReminderManager } from '@/components/reminders/ReminderManager';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Task {
   id: string;
@@ -30,11 +38,34 @@ interface Category {
 
 interface RoadmapViewProps {
   categories: Category[];
+  projectId: string;
+  tasks: any[];
 }
 
-export function RoadmapView({ categories }: RoadmapViewProps) {
+export function RoadmapView({ categories, projectId, tasks }: RoadmapViewProps) {
+  const { isAdmin } = useIsAdmin();
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [selectedProjectTaskId, setSelectedProjectTaskId] = useState<string | null>(null);
+
+  const { data: projectTasks = [] } = useQuery({
+    queryKey: ['project-tasks', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_tasks')
+        .select('*')
+        .eq('project_id', projectId);
+      if (error) throw error;
+      return data;
+    },
+  });
   const getCategoryProgress = (category: Category) => {
-    const completedTasks = category.projectTasks.filter(pt => pt.completed).length;
+    const categoryProjectTasks = projectTasks.filter(pt => 
+      category.tasks.some(t => t.id === pt.task_id)
+    );
+    const completedTasks = categoryProjectTasks.filter(pt => pt.completed).length;
     const totalTasks = category.tasks.length;
     return { completed: completedTasks, total: totalTasks };
   };
@@ -47,11 +78,20 @@ export function RoadmapView({ categories }: RoadmapViewProps) {
   return (
     <div className="py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
+        <div className="text-center mb-8">
           <h2 className="text-4xl font-bold mb-4">מפת דרך הפרויקט</h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground mb-6">
             מעקב אחר התקדמות הפרויקט שלב אחר שלב
           </p>
+          
+          {isAdmin && (
+            <div className="flex justify-center gap-2 flex-wrap">
+              <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm">
+                <Plus className="h-4 w-4 ml-1" />
+                הוסף קטגוריה
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="relative">
@@ -131,6 +171,20 @@ export function RoadmapView({ categories }: RoadmapViewProps) {
                             )}
                           </div>
                         </div>
+                        
+                        {isAdmin && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCategoryId(category.id);
+                              setTaskDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4 ml-1" />
+                            ערוך משימות
+                          </Button>
+                        )}
                       </div>
 
                       {/* Progress bar */}
@@ -150,13 +204,13 @@ export function RoadmapView({ categories }: RoadmapViewProps) {
                       {/* Tasks summary */}
                       <div className="grid gap-2 mt-4">
                         {category.tasks.slice(0, 3).map((task) => {
-                          const projectTask = category.projectTasks.find(
+                          const projectTask = projectTasks.find(
                             (pt) => pt.task_id === task.id
                           );
                           return (
                             <div
                               key={task.id}
-                              className="flex items-center gap-3 text-sm"
+                              className="flex items-center gap-3 text-sm group"
                             >
                               {projectTask?.completed ? (
                                 <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
@@ -176,6 +230,19 @@ export function RoadmapView({ categories }: RoadmapViewProps) {
                                 <Badge variant="outline" className="mr-auto text-xs">
                                   חובה
                                 </Badge>
+                              )}
+                              {projectTask && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    setSelectedProjectTaskId(projectTask.id);
+                                    setReminderDialogOpen(true);
+                                  }}
+                                >
+                                  <Bell className="h-3 w-3" />
+                                </Button>
                               )}
                             </div>
                           );
@@ -219,6 +286,40 @@ export function RoadmapView({ categories }: RoadmapViewProps) {
           </Card>
         </div>
       </div>
+
+      {/* Dialogs */}
+      {isAdmin && selectedCategoryId && (
+        <TaskManagementDialog
+          isOpen={taskDialogOpen}
+          onClose={() => {
+            setTaskDialogOpen(false);
+            setSelectedCategoryId('');
+          }}
+          categoryId={selectedCategoryId}
+          categoryName={categories.find(c => c.id === selectedCategoryId)?.display_name || ''}
+          tasks={tasks}
+        />
+      )}
+
+      {isAdmin && (
+        <CategoryManagementDialog
+          isOpen={categoryDialogOpen}
+          onClose={() => setCategoryDialogOpen(false)}
+          categories={categories}
+        />
+      )}
+
+      {selectedProjectTaskId && (
+        <ReminderManager
+          projectTaskId={selectedProjectTaskId}
+          taskName={projectTasks.find(pt => pt.id === selectedProjectTaskId)?.task_id || ''}
+          isOpen={reminderDialogOpen}
+          onClose={() => {
+            setReminderDialogOpen(false);
+            setSelectedProjectTaskId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
