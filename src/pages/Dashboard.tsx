@@ -28,8 +28,11 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent shadow-glow"></div>
+          <p className="text-sm text-muted-foreground animate-pulse">טוען...</p>
+        </div>
       </div>
     );
   }
@@ -39,27 +42,27 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <header className="border-b bg-card">
+    <div className="min-h-screen bg-gradient-subtle" dir="rtl">
+      <header className="border-b bg-card/80 backdrop-blur-md shadow-md sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">מערכת ניהול פרויקטים</h1>
-            <p className="text-sm text-muted-foreground">ניהול שלבי עבודה אדריכליים</p>
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold gradient-text">מערכת ניהול פרויקטים</h1>
+            <p className="text-sm text-muted-foreground mt-1">ניהול שלבי עבודה אדריכליים מתקדם</p>
           </div>
-          <div className="flex items-center gap-4">
-            <Button onClick={() => navigate('/project/new')} size="sm">
-              <Plus className="ml-2 h-4 w-4" />
+          <div className="flex items-center gap-3 animate-fade-in">
+            <Button onClick={() => navigate('/project/new')} variant="gradient" size="lg" className="shadow-lg">
+              <Plus className="ml-2 h-5 w-5" />
               פרויקט חדש
             </Button>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              <LogOut className="ml-2 h-4 w-4" />
+            <Button onClick={handleSignOut} variant="outline" size="lg" className="hover-lift">
+              <LogOut className="ml-2 h-5 w-5" />
               התנתק
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 animate-fade-in">
         <ProjectsList />
       </main>
     </div>

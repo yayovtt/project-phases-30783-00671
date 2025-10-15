@@ -47,8 +47,11 @@ const ProjectView = () => {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent shadow-glow"></div>
+          <p className="text-sm text-muted-foreground animate-pulse">טוען פרויקט...</p>
+        </div>
       </div>
     );
   }
@@ -58,18 +61,18 @@ const ProjectView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <header className="border-b bg-card sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-subtle" dir="rtl">
+      <header className="border-b bg-card/80 backdrop-blur-md shadow-md sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="hover-lift">
               <ArrowRight className="ml-2 h-4 w-4" />
               חזור לפרויקטים
             </Button>
-            <div className="flex-1">
+            <div className="flex-1 animate-fade-in">
               <div className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-primary" />
-                <h1 className="text-xl font-bold">{project.client_name}</h1>
+                <h1 className="text-xl font-bold gradient-text">{project.client_name}</h1>
               </div>
               {project.address && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
@@ -83,7 +86,7 @@ const ProjectView = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 animate-fade-in">
         <div className="space-y-6">
           {(project.gush || project.parcel || project.plot) && (
             <Card>
