@@ -115,6 +115,8 @@ export type Database = {
       project_tasks: {
         Row: {
           actual_hours: number | null
+          assigned_at: string | null
+          assigned_to: string | null
           completed: boolean | null
           completed_at: string | null
           completed_by: string | null
@@ -122,6 +124,7 @@ export type Database = {
           due_date_override: string | null
           id: string
           notes: string | null
+          progress: number | null
           project_id: string
           started_at: string | null
           status: string | null
@@ -130,6 +133,8 @@ export type Database = {
         }
         Insert: {
           actual_hours?: number | null
+          assigned_at?: string | null
+          assigned_to?: string | null
           completed?: boolean | null
           completed_at?: string | null
           completed_by?: string | null
@@ -137,6 +142,7 @@ export type Database = {
           due_date_override?: string | null
           id?: string
           notes?: string | null
+          progress?: number | null
           project_id: string
           started_at?: string | null
           status?: string | null
@@ -145,6 +151,8 @@ export type Database = {
         }
         Update: {
           actual_hours?: number | null
+          assigned_at?: string | null
+          assigned_to?: string | null
           completed?: boolean | null
           completed_at?: string | null
           completed_by?: string | null
@@ -152,6 +160,7 @@ export type Database = {
           due_date_override?: string | null
           id?: string
           notes?: string | null
+          progress?: number | null
           project_id?: string
           started_at?: string | null
           status?: string | null
@@ -159,6 +168,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_tasks_project_id_fkey"
             columns: ["project_id"]
@@ -254,6 +270,103 @@ export type Database = {
             columns: ["project_task_id"]
             isOneToOne: false
             referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_dependencies: {
+        Row: {
+          created_at: string | null
+          dependency_type: string | null
+          depends_on_task_id: string
+          id: string
+          project_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dependency_type?: string | null
+          depends_on_task_id: string
+          id?: string
+          project_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dependency_type?: string | null
+          depends_on_task_id?: string
+          id?: string
+          project_id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_dependencies_depends_on_task_id_fkey"
+            columns: ["depends_on_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_dependencies_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string | null
+          project_task_id: string
+          sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type?: string | null
+          project_task_id: string
+          sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string | null
+          project_task_id?: string
+          sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_notifications_project_task_id_fkey"
+            columns: ["project_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

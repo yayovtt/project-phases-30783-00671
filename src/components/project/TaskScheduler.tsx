@@ -11,34 +11,43 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { TaskProgressSlider } from "./TaskProgressSlider";
+import { TaskAssignmentPicker } from "./TaskAssignmentPicker";
+import { TaskDependencyManager } from "./TaskDependencyManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TaskSchedulerProps {
+  projectId: string;
   taskId: string;
+  taskName: string;
   currentDueDate?: string;
   currentStartedAt?: string;
   currentEstimatedHours?: number;
   currentActualHours?: number;
+  currentProgress?: number;
+  currentAssignedTo?: string;
   currentPriority?: "low" | "medium" | "high" | "urgent";
   onUpdate: (data: {
     due_date_override?: string;
     started_at?: string;
     actual_hours?: number;
+    progress?: number;
+    assigned_to?: string | null;
+    assigned_at?: string;
   }) => void;
 }
 
 export function TaskScheduler({
+  projectId,
+  taskId,
+  taskName,
   currentDueDate,
   currentStartedAt,
   currentEstimatedHours,
   currentActualHours,
+  currentProgress,
+  currentAssignedTo,
   currentPriority,
   onUpdate,
 }: TaskSchedulerProps) {
@@ -49,21 +58,34 @@ export function TaskScheduler({
     currentStartedAt ? new Date(currentStartedAt) : undefined
   );
   const [actualHours, setActualHours] = useState<number>(currentActualHours || 0);
+  const [progress, setProgress] = useState<number>(currentProgress || 0);
+  const [assignedTo, setAssignedTo] = useState<string | undefined>(currentAssignedTo);
 
   const handleSave = () => {
     onUpdate({
       due_date_override: dueDate?.toISOString(),
       started_at: startDate?.toISOString(),
       actual_hours: actualHours,
+      progress,
+      assigned_to: assignedTo || null,
+      assigned_at: assignedTo ? new Date().toISOString() : undefined,
     });
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-card">
-      <h3 className="font-semibold flex items-center gap-2">
-        <Clock className="h-4 w-4" />
-        תזמון משימה
-      </h3>
+    <div className="space-y-4">
+      <Tabs defaultValue="schedule" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="schedule">תזמון</TabsTrigger>
+          <TabsTrigger value="progress">התקדמות</TabsTrigger>
+          <TabsTrigger value="dependencies">תלויות</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="schedule" className="space-y-4 p-4 border rounded-lg bg-card mt-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            תזמון משימה
+          </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Start Date */}
@@ -169,9 +191,35 @@ export function TaskScheduler({
         </div>
       )}
 
-      <Button onClick={handleSave} className="w-full">
-        שמור שינויים
-      </Button>
+          <Button onClick={handleSave} className="w-full">
+            שמור שינויים
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="progress" className="space-y-4 p-4 border rounded-lg bg-card mt-4">
+          <TaskProgressSlider
+            currentProgress={progress}
+            onUpdate={(newProgress) => setProgress(newProgress)}
+          />
+
+          <TaskAssignmentPicker
+            currentAssignedTo={assignedTo}
+            onUpdate={(userId) => setAssignedTo(userId || undefined)}
+          />
+
+          <Button onClick={handleSave} className="w-full">
+            שמור שינויים
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="dependencies" className="space-y-4 p-4 border rounded-lg bg-card mt-4">
+          <TaskDependencyManager
+            projectId={projectId}
+            taskId={taskId}
+            currentTaskName={taskName}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -23,6 +23,11 @@ import { CalendarView } from './views/CalendarView';
 import { ReminderManager } from '@/components/reminders/ReminderManager';
 import { ReminderNotification } from '@/components/reminders/ReminderNotification';
 import { useReminders } from '@/hooks/useReminders';
+import { TaskScheduler } from './TaskScheduler';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TaskTimeAnalytics } from './TaskTimeAnalytics';
+import { GanttView } from './views/GanttView';
+import { ProjectDashboard } from './ProjectDashboard';
 
 interface Category {
   id: string;
@@ -79,6 +84,12 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     id: string;
     name: string;
     notes: string | null;
+  } | null>(null);
+  const [schedulerDialogOpen, setSchedulerDialogOpen] = useState(false);
+  const [selectedTaskForScheduler, setSelectedTaskForScheduler] = useState<{
+    projectTaskId: string;
+    taskId: string;
+    taskName: string;
   } | null>(null);
 
   const { activeReminders, dismissReminder } = useReminders();
@@ -287,11 +298,23 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
       <Tabs defaultValue="list" className="w-full" dir="rtl">
         <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full flex-wrap">
+          <TabsTrigger value="dashboard" className="flex-1">
+            <BarChart3 className="h-4 w-4 ml-1" />
+            סיכום
+          </TabsTrigger>
           <TabsTrigger value="list" className="flex-1">רשימת משימות</TabsTrigger>
+          <TabsTrigger value="gantt" className="flex-1">
+            <Map className="h-4 w-4 ml-1" />
+            Gantt
+          </TabsTrigger>
           <TabsTrigger value="timeline" className="flex-1">ציר זמן</TabsTrigger>
           <TabsTrigger value="calendar" className="flex-1">
             <CalendarIcon className="h-4 w-4 ml-1" />
             לוח שנה
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex-1">
+            <BarChart3 className="h-4 w-4 ml-1" />
+            ניתוח
           </TabsTrigger>
           <TabsTrigger value="flow" className="flex-1">זרימה אופקית</TabsTrigger>
           <TabsTrigger value="vertical" className="flex-1">זרימה אנכית</TabsTrigger>
@@ -305,6 +328,18 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
             גיבוי
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-4">
+          <ProjectDashboard projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="gantt" className="space-y-4">
+          <GanttView projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-4">
+          <TaskTimeAnalytics projectId={projectId} />
+        </TabsContent>
 
         <TabsContent value="list" className="space-y-4">
           {categories.map((category) => {
@@ -390,7 +425,23 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                               </p>
                             )}
                           </div>
-                          <div className="flex gap-1">
+                           <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                setSelectedTaskForScheduler({
+                                  projectTaskId: getProjectTaskId(task.id),
+                                  taskId: task.id,
+                                  taskName: task.name,
+                                });
+                                setSchedulerDialogOpen(true);
+                              }}
+                              title="תזמון משימה"
+                            >
+                              <Clock className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -706,6 +757,70 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           categoryName={selectedCategoryForTasks.name}
           tasks={tasks}
         />
+      )}
+
+      {selectedTaskForScheduler && (
+        <Dialog open={schedulerDialogOpen} onOpenChange={setSchedulerDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>תזמון משימה: {selectedTaskForScheduler.taskName}</DialogTitle>
+            </DialogHeader>
+            <TaskScheduler
+              projectId={projectId}
+              taskId={selectedTaskForScheduler.taskId}
+              taskName={selectedTaskForScheduler.taskName}
+              currentDueDate={
+                projectTasks?.find((pt) => pt.id === selectedTaskForScheduler.projectTaskId)
+                  ?.due_date_override || undefined
+              }
+              currentStartedAt={
+                projectTasks?.find((pt) => pt.id === selectedTaskForScheduler.projectTaskId)
+                  ?.started_at || undefined
+              }
+              currentEstimatedHours={
+                tasks?.find((t) => t.id === selectedTaskForScheduler.taskId)?.estimated_hours ||
+                undefined
+              }
+              currentActualHours={
+                projectTasks?.find((pt) => pt.id === selectedTaskForScheduler.projectTaskId)
+                  ?.actual_hours || undefined
+              }
+              currentProgress={
+                (projectTasks?.find((pt) => pt.id === selectedTaskForScheduler.projectTaskId) as any)
+                  ?.progress || 0
+              }
+              currentAssignedTo={
+                (projectTasks?.find((pt) => pt.id === selectedTaskForScheduler.projectTaskId) as any)
+                  ?.assigned_to || undefined
+              }
+              currentPriority={
+                tasks?.find((t) => t.id === selectedTaskForScheduler.taskId)?.priority
+              }
+              onUpdate={async (data) => {
+                const { error } = await supabase
+                  .from('project_tasks')
+                  .update(data)
+                  .eq('id', selectedTaskForScheduler.projectTaskId);
+
+                if (error) {
+                  toast({
+                    title: 'שגיאה',
+                    description: error.message,
+                    variant: 'destructive',
+                  });
+                } else {
+                  queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+                  toast({
+                    title: 'עודכן בהצלחה',
+                    description: 'תזמון המשימה עודכן',
+                  });
+                  setSchedulerDialogOpen(false);
+                  setSelectedTaskForScheduler(null);
+                }
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
