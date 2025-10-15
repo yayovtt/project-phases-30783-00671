@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -31,6 +31,7 @@ import { ProjectDashboard } from './ProjectDashboard';
 import { KanbanBoard } from './KanbanBoard';
 import { CommandPalette } from './CommandPalette';
 import { MobileBottomNav } from './MobileBottomNav';
+import { SpreadsheetView } from './SpreadsheetView';
 
 interface Category {
   id: string;
@@ -319,6 +320,10 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           <TabsTrigger value="analytics" className="flex-1">אנליטיקס</TabsTrigger>
           <TabsTrigger value="timeline" className="flex-1">ציר זמן</TabsTrigger>
           <TabsTrigger value="roadmap" className="flex-1">מפת דרך</TabsTrigger>
+          <TabsTrigger value="spreadsheet" className="flex-1">
+            <FileSpreadsheet className="h-4 w-4 ml-1" />
+            טבלה
+          </TabsTrigger>
           <TabsTrigger value="export" className="flex-1">
             <Download className="h-4 w-4 ml-1" />
             יצוא/יבוא
@@ -716,6 +721,10 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
         <TabsContent value="roadmap">
           <RoadmapView categories={categoriesWithTasks} />
+        </TabsContent>
+
+        <TabsContent value="spreadsheet" className="mt-6">
+          <SpreadsheetView projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="export" className="mt-6">
