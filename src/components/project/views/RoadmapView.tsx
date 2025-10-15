@@ -9,6 +9,7 @@ import { ReminderManager } from '@/components/reminders/ReminderManager';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface Task {
   id: string;
@@ -61,12 +62,22 @@ export function RoadmapView({ categories, projectId, tasks }: RoadmapViewProps) 
       return data;
     },
   });
-  const getCategoryProgress = (category: Category) => {
-    const categoryProjectTasks = projectTasks.filter(pt => 
-      category.tasks.some(t => t.id === pt.task_id)
+  // Get project-specific tasks for a category
+  const getProjectCategoryTasks = (category: Category) => {
+    return category.tasks.filter(task => 
+      projectTasks?.some(pt => pt.task_id === task.id)
     );
-    const completedTasks = categoryProjectTasks.filter(pt => pt.completed).length;
-    const totalTasks = category.tasks.length;
+  };
+
+  const getCategoryProgress = (category: Category) => {
+    const categoryTasks = getProjectCategoryTasks(category);
+    const categoryProjectTasks = projectTasks?.filter((pt) =>
+      categoryTasks.some((t) => t.id === pt.task_id)
+    ) || [];
+    const completedTasks = categoryProjectTasks.filter(
+      (pt) => pt.completed
+    ).length;
+    const totalTasks = categoryTasks.length;
     return { completed: completedTasks, total: totalTasks };
   };
 
@@ -201,58 +212,57 @@ export function RoadmapView({ categories, projectId, tasks }: RoadmapViewProps) 
                         />
                       </div>
 
-                      {/* Tasks summary */}
-                      <div className="grid gap-2 mt-4">
-                        {category.tasks.slice(0, 3).map((task) => {
-                          const projectTask = projectTasks.find(
-                            (pt) => pt.task_id === task.id
-                          );
-                          return (
-                            <div
-                              key={task.id}
-                              className="flex items-center gap-3 text-sm group"
+                  {/* Tasks summary - All project tasks */}
+                  <div className="grid gap-2 mt-4">
+                    {getProjectCategoryTasks(category).map((task) => {
+                      const projectTask = projectTasks?.find(
+                        (pt) => pt.task_id === task.id
+                      );
+                      return (
+                        <div
+                          key={task.id}
+                          className="flex items-center gap-3 text-sm group"
+                        >
+                          <div
+                            className={cn(
+                              "h-2 w-2 rounded-full flex-shrink-0",
+                              projectTask?.completed
+                                ? "bg-primary"
+                                : "bg-muted-foreground/30"
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "flex-1 text-right",
+                              projectTask?.completed &&
+                                "line-through text-muted-foreground"
+                            )}
+                          >
+                            {task.name}
+                          </span>
+                          {task.is_required && (
+                            <Badge variant="secondary" className="text-xs">
+                              נדרש
+                            </Badge>
+                          )}
+                          {isAdmin && projectTask && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProjectTaskId(projectTask.id);
+                                setReminderDialogOpen(true);
+                              }}
                             >
-                              {projectTask?.completed ? (
-                                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                              ) : (
-                                <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                              )}
-                              <span
-                                className={
-                                  projectTask?.completed
-                                    ? 'line-through text-muted-foreground'
-                                    : ''
-                                }
-                              >
-                                {task.name}
-                              </span>
-                              {task.is_required && (
-                                <Badge variant="outline" className="mr-auto text-xs">
-                                  חובה
-                                </Badge>
-                              )}
-                              {projectTask && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => {
-                                    setSelectedProjectTaskId(projectTask.id);
-                                    setReminderDialogOpen(true);
-                                  }}
-                                >
-                                  <Bell className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {category.tasks.length > 3 && (
-                          <p className="text-sm text-muted-foreground mr-8">
-                            + עוד {category.tasks.length - 3} משימות
-                          </p>
-                        )}
-                      </div>
+                              <Bell className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                     </div>
                   </Card>
                 </div>
