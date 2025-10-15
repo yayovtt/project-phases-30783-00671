@@ -1,17 +1,33 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { offlineStorage } from '@/lib/offlineStorage';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
-interface UseSyncedQueryOptions<T> extends Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'> {
+interface UseSyncedQueryOptions<T> extends Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn' | 'initialData'> {
   queryKey: string[];
   queryFn: () => Promise<T>;
 }
 
 export function useSyncedQuery<T>({ queryKey, queryFn, ...options }: UseSyncedQueryOptions<T>) {
   const cacheKey = queryKey.join(':');
+  const [initialData, setInitialData] = useState<T | undefined>(undefined);
+  const [hasLoadedCache, setHasLoadedCache] = useState(false);
+
+  // Load initial data from cache once
+  useEffect(() => {
+    const loadFromCache = async () => {
+      const cached = await offlineStorage.get<T>(cacheKey);
+      if (cached) {
+        setInitialData(cached);
+      }
+      setHasLoadedCache(true);
+    };
+    loadFromCache();
+  }, [cacheKey]);
 
   const query = useQuery<T>({
     queryKey,
+    initialData,
+    enabled: hasLoadedCache, // Only start querying after cache check
     queryFn: async () => {
       // Try to fetch from server
       try {
@@ -20,31 +36,16 @@ export function useSyncedQuery<T>({ queryKey, queryFn, ...options }: UseSyncedQu
         await offlineStorage.set(cacheKey, data);
         return data;
       } catch (error) {
-        // If server fetch fails, try to get from cache
-        const cached = await offlineStorage.get<T>(cacheKey);
-        if (cached) {
+        // If server fetch fails and we have initial data, use it
+        if (initialData) {
           console.log('Using cached data for', cacheKey);
-          return cached;
+          return initialData;
         }
         throw error;
       }
     },
     ...options,
   });
-
-  // Load initial data from cache
-  useEffect(() => {
-    const loadFromCache = async () => {
-      if (!query.data) {
-        const cached = await offlineStorage.get<T>(cacheKey);
-        if (cached) {
-          // This will be used as initial data
-          query.refetch();
-        }
-      }
-    };
-    loadFromCache();
-  }, [cacheKey]);
 
   return query;
 }
