@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -17,6 +17,8 @@ import { TaskManagementDialog } from './TaskManagementDialog';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { TaskFilters } from './TaskFilters';
 import { OfflineIndicator } from '@/components/ui/offline-indicator';
+import { ExportImport } from './ExportImport';
+import { BackupRestore } from './BackupRestore';
 
 interface Category {
   id: string;
@@ -267,12 +269,20 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
       />
 
       <Tabs defaultValue="list" className="w-full" dir="rtl">
-        <TabsList className="grid w-full grid-cols-5 mb-6">
-          <TabsTrigger value="list">רשימת משימות</TabsTrigger>
-          <TabsTrigger value="timeline">ציר זמן</TabsTrigger>
-          <TabsTrigger value="flow">זרימה אופקית</TabsTrigger>
-          <TabsTrigger value="vertical">זרימה אנכית</TabsTrigger>
-          <TabsTrigger value="roadmap">מפת דרך</TabsTrigger>
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full">
+          <TabsTrigger value="list" className="flex-1">רשימת משימות</TabsTrigger>
+          <TabsTrigger value="timeline" className="flex-1">ציר זמן</TabsTrigger>
+          <TabsTrigger value="flow" className="flex-1">זרימה אופקית</TabsTrigger>
+          <TabsTrigger value="vertical" className="flex-1">זרימה אנכית</TabsTrigger>
+          <TabsTrigger value="roadmap" className="flex-1">מפת דרך</TabsTrigger>
+          <TabsTrigger value="export" className="flex-1">
+            <Download className="h-4 w-4 ml-1" />
+            יצוא/יבוא
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="flex-1">
+            <Database className="h-4 w-4 ml-1" />
+            גיבוי
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
@@ -582,6 +592,14 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
         <TabsContent value="roadmap">
           <RoadmapView categories={categoriesWithTasks} />
+        </TabsContent>
+
+        <TabsContent value="export" className="mt-6">
+          <ExportImport projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="backup" className="mt-6">
+          <BackupRestore projectId={projectId} />
         </TabsContent>
       </Tabs>
 
