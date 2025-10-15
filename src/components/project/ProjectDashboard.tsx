@@ -73,7 +73,6 @@ export function ProjectDashboard({
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-l-4 border-l-primary overflow-hidden hover:shadow-xl transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-primary opacity-5" />
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
             <CardTitle className="text-sm font-medium">סה"כ משימות</CardTitle>
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
