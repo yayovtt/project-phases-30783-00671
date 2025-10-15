@@ -28,6 +28,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TaskTimeAnalytics } from './TaskTimeAnalytics';
 import { GanttView } from './views/GanttView';
 import { ProjectDashboard } from './ProjectDashboard';
+import { KanbanBoard } from './KanbanBoard';
+import { CommandPalette } from './CommandPalette';
+import { MobileBottomNav } from './MobileBottomNav';
 
 interface Category {
   id: string;
@@ -91,6 +94,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     taskId: string;
     taskName: string;
   } | null>(null);
+  const [activeView, setActiveView] = useState('tasks');
 
   const { activeReminders, dismissReminder } = useReminders();
 
@@ -297,37 +301,31 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
       />
 
       <Tabs defaultValue="list" className="w-full" dir="rtl">
-        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full flex-wrap">
+        <TabsList className="hidden md:inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full flex-wrap">
           <TabsTrigger value="dashboard" className="flex-1">
             <BarChart3 className="h-4 w-4 ml-1" />
-            סיכום
+            דשבורד
           </TabsTrigger>
-          <TabsTrigger value="list" className="flex-1">רשימת משימות</TabsTrigger>
-          <TabsTrigger value="gantt" className="flex-1">
+          <TabsTrigger value="list" className="flex-1">משימות</TabsTrigger>
+          <TabsTrigger value="kanban" className="flex-1">
             <Map className="h-4 w-4 ml-1" />
-            Gantt
+            קנבן
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex-1">ציר זמן</TabsTrigger>
+          <TabsTrigger value="gantt" className="flex-1">Gantt</TabsTrigger>
           <TabsTrigger value="calendar" className="flex-1">
             <CalendarIcon className="h-4 w-4 ml-1" />
             לוח שנה
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex-1">
-            <BarChart3 className="h-4 w-4 ml-1" />
-            ניתוח
-          </TabsTrigger>
-          <TabsTrigger value="flow" className="flex-1">זרימה אופקית</TabsTrigger>
-          <TabsTrigger value="vertical" className="flex-1">זרימה אנכית</TabsTrigger>
+          <TabsTrigger value="analytics" className="flex-1">אנליטיקס</TabsTrigger>
+          <TabsTrigger value="timeline" className="flex-1">ציר זמן</TabsTrigger>
           <TabsTrigger value="roadmap" className="flex-1">מפת דרך</TabsTrigger>
           <TabsTrigger value="export" className="flex-1">
             <Download className="h-4 w-4 ml-1" />
             יצוא/יבוא
           </TabsTrigger>
-          <TabsTrigger value="backup" className="flex-1">
-            <Database className="h-4 w-4 ml-1" />
-            גיבוי
-          </TabsTrigger>
         </TabsList>
+        
+        <MobileBottomNav activeTab={activeView} onTabChange={setActiveView} />
 
         <TabsContent value="dashboard" className="space-y-4">
           <ProjectDashboard projectId={projectId} />
@@ -339,6 +337,32 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
         <TabsContent value="analytics" className="space-y-4">
           <TaskTimeAnalytics projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="kanban" className="space-y-4">
+          <KanbanBoard
+            tasks={filteredTasks.map(task => ({
+              id: task.id,
+              name: task.name,
+              status: projectTasks?.find(pt => pt.task_id === task.id)?.status || 'pending',
+              priority: task.priority,
+              dueDate: task.due_date,
+            }))}
+            onStatusChange={async (taskId, newStatus) => {
+              const projectTask = projectTasks?.find(pt => pt.task_id === taskId);
+              if (projectTask) {
+                await supabase
+                  .from('project_tasks')
+                  .update({ status: newStatus })
+                  .eq('id', projectTask.id);
+                queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+              }
+            }}
+            onTaskClick={(task) => {
+              setSelectedTask({ id: task.id, name: task.name, notes: null });
+              setNotesDialogOpen(true);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="list" className="space-y-4">

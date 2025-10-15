@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Calendar,
   Users,
+  Target,
+  Zap,
 } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
@@ -98,64 +100,80 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="border-l-4 border-l-primary overflow-hidden hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-primary opacity-5" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
             <CardTitle className="text-sm font-medium">סה"כ משימות</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalTasks}</div>
-            <Progress value={completionRate} className="mt-2" />
-            <p className="text-xs text-muted-foreground mt-2">
-              {completedTasks} הושלמו ({completionRate.toFixed(1)}%)
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">בתהליך</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inProgressTasks}</div>
-            <p className="text-xs text-muted-foreground mt-2">
-              משימות פעילות כעת
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">באיחור</CardTitle>
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {overdueTasks}
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Target className="h-5 w-5 text-primary" />
             </div>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              {totalTasks}
+            </div>
+            <Progress value={completionRate} className="mt-3 h-2" />
             <p className="text-xs text-muted-foreground mt-2">
-              דורש טיפול מיידי
+              {completedTasks} הושלמו • {completionRate.toFixed(1)}%
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">זמן פרויקט</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-l-4 border-l-info overflow-hidden hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 bg-info/5" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+            <CardTitle className="text-sm font-medium">בתהליך</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-info/10 flex items-center justify-center">
+              <Zap className="h-5 w-5 text-info" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="relative z-10">
+            <div className="text-3xl font-bold text-info">{inProgressTasks}</div>
+            <p className="text-xs text-muted-foreground mt-3">
+              משימות פעילות כרגע
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-warning overflow-hidden hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 bg-warning/5" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+            <CardTitle className="text-sm font-medium">באיחור</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center animate-pulse">
+              <AlertCircle className="h-5 w-5 text-warning" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="text-3xl font-bold text-warning">{overdueTasks}</div>
+            <p className="text-xs text-muted-foreground mt-3">
+              דורש טיפול מיידי 🔔
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-success overflow-hidden hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 bg-success/5" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+            <CardTitle className="text-sm font-medium">זמן פרויקט</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-success" />
+            </div>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="text-2xl font-bold text-success">
               {totalActual}h / {totalEstimated}h
             </div>
+            <Progress 
+              value={totalEstimated > 0 ? (totalActual / totalEstimated) * 100 : 0} 
+              className="mt-3 h-2" 
+            />
             <p className="text-xs text-muted-foreground mt-2">
               {totalEstimated > 0
-                ? `${((totalActual / totalEstimated) * 100).toFixed(1)}% מהזמן`
-                : "אין הערכה"}
+                ? `${((totalActual / totalEstimated) * 100).toFixed(1)}% מהזמן הושקע`
+                : "אין הערכת זמן"}
             </p>
           </CardContent>
         </Card>
@@ -163,31 +181,33 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming Tasks */}
-        <Card>
-          <CardHeader>
+        <Card className="animate-scale-in hover:shadow-xl transition-shadow">
+          <CardHeader className="bg-gradient-subtle">
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+              <Calendar className="h-5 w-5 text-primary" />
               משימות קרובות
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="space-y-3">
               {upcomingTasks && upcomingTasks.length > 0 ? (
-                upcomingTasks.map((task: any) => {
+                upcomingTasks.map((task: any, index: number) => {
                   const isOverdue =
                     new Date(task.due_date_override) < new Date();
                   return (
                     <div
                       key={task.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                      className="flex items-center justify-between p-4 border rounded-xl hover:shadow-md hover:scale-[1.02] transition-all duration-300 bg-gradient-to-l from-transparent to-primary/5"
+                      style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{task.tasks?.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <p className="font-semibold text-sm mb-2">{task.tasks?.name}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge
                             variant={isOverdue ? "destructive" : "secondary"}
-                            className="text-xs"
+                            className="text-xs animate-fade-in"
                           >
+                            {isOverdue && "⚠️ "}
                             {format(
                               new Date(task.due_date_override),
                               "dd/MM/yyyy",
@@ -195,63 +215,80 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
                             )}
                           </Badge>
                           {task.profiles && (
-                            <span className="text-xs text-muted-foreground">
-                              {task.profiles.full_name || task.profiles.email}
-                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              👤 {task.profiles.full_name || task.profiles.email}
+                            </Badge>
                           )}
                         </div>
                       </div>
-                      <div className="text-sm font-medium">{task.progress}%</div>
+                      <div className="text-center mr-4">
+                        <div className="text-2xl font-bold text-primary">{task.progress}%</div>
+                        <Progress value={task.progress} className="w-16 h-2 mt-1" />
+                      </div>
                     </div>
                   );
                 })
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  אין משימות קרובות
-                </p>
+                <div className="text-center py-8">
+                  <CheckCircle className="h-12 w-12 text-success mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-muted-foreground">
+                    אין משימות קרובות
+                  </p>
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* Team Workload */}
-        <Card>
-          <CardHeader>
+        <Card className="animate-scale-in hover:shadow-xl transition-shadow">
+          <CardHeader className="bg-gradient-subtle">
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+              <Users className="h-5 w-5 text-primary" />
               עומס צוות
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="space-y-3">
               {teamWorkload && teamWorkload.length > 0 ? (
-                teamWorkload.map((member: any) => {
+                teamWorkload.map((member: any, index: number) => {
                   const completionRate =
                     (member.completedTasks / member.totalTasks) * 100;
                   return (
                     <div
                       key={member.userId}
-                      className="flex items-center gap-3 p-3 border rounded-lg"
+                      className="flex items-center gap-3 p-4 border rounded-xl hover:shadow-md hover:scale-[1.02] transition-all duration-300 bg-gradient-to-l from-transparent to-accent/5"
+                      style={{ animationDelay: `${index * 0.1}s` }}
                     >
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback>{member.name?.[0]}</AvatarFallback>
+                      <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+                        <AvatarFallback className="bg-gradient-primary text-white font-bold">
+                          {member.name?.[0]}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{member.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Progress value={completionRate} className="flex-1" />
-                          <span className="text-xs text-muted-foreground">
+                        <p className="font-semibold text-sm mb-2">{member.name}</p>
+                        <div className="flex items-center gap-2">
+                          <Progress value={completionRate} className="flex-1 h-2" />
+                          <Badge variant="secondary" className="text-xs">
                             {member.completedTasks}/{member.totalTasks}
-                          </span>
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-2xl font-bold ${completionRate === 100 ? 'text-success' : 'text-primary'}`}>
+                          {completionRate.toFixed(0)}%
                         </div>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  אין משימות משויכות
-                </p>
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-muted-foreground">
+                    אין משימות משויכות לצוות
+                  </p>
+                </div>
               )}
             </div>
           </CardContent>
