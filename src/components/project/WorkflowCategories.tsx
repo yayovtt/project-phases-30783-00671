@@ -346,6 +346,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
         <TabsContent value="kanban" className="space-y-4">
           <KanbanBoard
+            projectId={projectId}
             tasks={filteredTasks.map(task => ({
               id: task.id,
               name: task.name,

@@ -41,6 +41,50 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_statuses: {
+        Row: {
+          color: string
+          created_at: string | null
+          icon: string
+          id: string
+          label: string
+          name: string
+          order_index: number
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          icon?: string
+          id?: string
+          label: string
+          name: string
+          order_index?: number
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          icon?: string
+          id?: string
+          label?: string
+          name?: string
+          order_index?: number
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_statuses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
