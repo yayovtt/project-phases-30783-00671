@@ -6,10 +6,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowLeft, CheckCircle2, Circle } from 'lucide-react';
+import { MessageSquare, ArrowLeft, CheckCircle2, Circle, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
+import { TimelineView } from './views/TimelineView';
+import { CategoryManagementDialog } from './CategoryManagementDialog';
+import { TaskManagementDialog } from './TaskManagementDialog';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface Category {
   id: string;
@@ -43,7 +47,14 @@ interface WorkflowCategoriesProps {
 export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin } = useIsAdmin();
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+  const [taskManagementOpen, setTaskManagementOpen] = useState(false);
+  const [selectedCategoryForTasks, setSelectedCategoryForTasks] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [selectedTask, setSelectedTask] = useState<{
     id: string;
     name: string;
@@ -174,11 +185,26 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
   const categoriesWithTasks = getCategoriesWithTasks();
 
+  const handleOpenTaskManagement = (categoryId: string, categoryName: string) => {
+    setSelectedCategoryForTasks({ id: categoryId, name: categoryName });
+    setTaskManagementOpen(true);
+  };
+
   return (
     <div className="space-y-6">
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Button onClick={() => setCategoryManagementOpen(true)} variant="outline">
+            <Settings className="ml-2 h-4 w-4" />
+            ניהול קטגוריות
+          </Button>
+        </div>
+      )}
+
       <Tabs defaultValue="list" className="w-full" dir="rtl">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-5 mb-6">
           <TabsTrigger value="list">רשימת משימות</TabsTrigger>
+          <TabsTrigger value="timeline">ציר זמן</TabsTrigger>
           <TabsTrigger value="flow">זרימה אופקית</TabsTrigger>
           <TabsTrigger value="vertical">זרימה אנכית</TabsTrigger>
           <TabsTrigger value="roadmap">מפת דרך</TabsTrigger>
@@ -202,6 +228,17 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                       )}
                       <CardTitle>{category.display_name}</CardTitle>
                       <Badge variant="secondary">{categoryTasks.length} משימות</Badge>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            handleOpenTaskManagement(category.id, category.display_name)
+                          }
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">{progress}%</span>
@@ -464,6 +501,19 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           </div>
         </TabsContent>
 
+        <TabsContent value="timeline">
+          <TimelineView
+            categories={categories.map((category) => ({
+              ...category,
+              tasks: tasks.filter((t) => t.category_id === category.id),
+            }))}
+            isTaskCompleted={isTaskCompleted}
+            onToggleTask={(taskId, completed) =>
+              toggleTaskMutation.mutate({ taskId, completed })
+            }
+          />
+        </TabsContent>
+
         <TabsContent value="roadmap">
           <RoadmapView categories={categoriesWithTasks} />
         </TabsContent>
@@ -479,6 +529,27 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
             setNotesDialogOpen(false);
             setSelectedTask(null);
           }}
+        />
+      )}
+
+      {isAdmin && categories && (
+        <CategoryManagementDialog
+          isOpen={categoryManagementOpen}
+          onClose={() => setCategoryManagementOpen(false)}
+          categories={categories}
+        />
+      )}
+
+      {isAdmin && selectedCategoryForTasks && tasks && (
+        <TaskManagementDialog
+          isOpen={taskManagementOpen}
+          onClose={() => {
+            setTaskManagementOpen(false);
+            setSelectedCategoryForTasks(null);
+          }}
+          categoryId={selectedCategoryForTasks.id}
+          categoryName={selectedCategoryForTasks.name}
+          tasks={tasks}
         />
       )}
     </div>
