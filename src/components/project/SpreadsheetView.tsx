@@ -10,10 +10,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Upload, RefreshCw, FileSpreadsheet, Share2, Edit2, Save, X } from 'lucide-react';
+import { Download, Upload, RefreshCw, FileSpreadsheet, Share2, Edit2, Save, X, FileUp } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { PriorityBadge } from './PriorityBadge';
+import { useDropzone } from 'react-dropzone';
+import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 interface SpreadsheetViewProps {
   projectId: string;
@@ -32,6 +35,8 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
   const [googleSheetsUrl, setGoogleSheetsUrl] = useState('');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importedData, setImportedData] = useState<any[]>([]);
 
   const { data: tasks } = useQuery({
     queryKey: ['tasks'],
@@ -261,6 +266,141 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
     return task[field];
   };
 
+  const handleFileUpload = (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+    if (fileExtension === 'csv') {
+      Papa.parse(file, {
+        header: true,
+        complete: (results) => {
+          console.log('CSV parsed:', results.data);
+          setImportedData(results.data);
+          toast({
+            title: 'קובץ נטען בהצלחה',
+            description: `נטענו ${results.data.length} שורות`,
+          });
+        },
+        error: (error) => {
+          console.error('CSV parse error:', error);
+          toast({
+            title: 'שגיאה',
+            description: 'לא ניתן לקרוא את קובץ ה-CSV',
+            variant: 'destructive',
+          });
+        },
+      });
+    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+          console.log('Excel parsed:', jsonData);
+          setImportedData(jsonData);
+          toast({
+            title: 'קובץ נטען בהצלחה',
+            description: `נטענו ${jsonData.length} שורות`,
+          });
+        } catch (error) {
+          console.error('Excel parse error:', error);
+          toast({
+            title: 'שגיאה',
+            description: 'לא ניתן לקרוא את קובץ ה-Excel',
+            variant: 'destructive',
+          });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else if (fileExtension === 'xml') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const xmlText = e.target?.result as string;
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+          
+          // Convert XML to JSON-like structure
+          const rows = xmlDoc.querySelectorAll('row');
+          const jsonData = Array.from(rows).map(row => {
+            const obj: any = {};
+            row.childNodes.forEach(node => {
+              if (node.nodeType === 1) { // Element node
+                obj[node.nodeName] = node.textContent;
+              }
+            });
+            return obj;
+          });
+          
+          console.log('XML parsed:', jsonData);
+          setImportedData(jsonData);
+          toast({
+            title: 'קובץ נטען בהצלחה',
+            description: `נטענו ${jsonData.length} שורות`,
+          });
+        } catch (error) {
+          console.error('XML parse error:', error);
+          toast({
+            title: 'שגיאה',
+            description: 'לא ניתן לקרוא את קובץ ה-XML',
+            variant: 'destructive',
+          });
+        }
+      };
+      reader.readAsText(file);
+    } else if (fileExtension === 'txt') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          // Try to parse as tab-separated or comma-separated
+          const lines = text.split('\n').filter(line => line.trim());
+          const headers = lines[0].split(/[\t,]/);
+          const jsonData = lines.slice(1).map(line => {
+            const values = line.split(/[\t,]/);
+            const obj: any = {};
+            headers.forEach((header, index) => {
+              obj[header.trim()] = values[index]?.trim() || '';
+            });
+            return obj;
+          });
+          
+          console.log('TXT parsed:', jsonData);
+          setImportedData(jsonData);
+          toast({
+            title: 'קובץ נטען בהצלחה',
+            description: `נטענו ${jsonData.length} שורות`,
+          });
+        } catch (error) {
+          console.error('TXT parse error:', error);
+          toast({
+            title: 'שגיאה',
+            description: 'לא ניתן לקרוא את קובץ הטקסט',
+            variant: 'destructive',
+          });
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFileUpload,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'text/xml': ['.xml'],
+      'application/xml': ['.xml'],
+      'text/plain': ['.txt'],
+    },
+    maxFiles: 1,
+  });
+
   if (!tasks || !categories) {
     return <div className="text-center py-8">טוען...</div>;
   }
@@ -280,6 +420,106 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <FileUp className="h-4 w-4 ml-1" />
+                    ייבא קובץ
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
+                  <DialogHeader>
+                    <DialogTitle>ייבוא נתונים מקובץ</DialogTitle>
+                    <DialogDescription>
+                      העלה קובץ Excel, CSV, XML או TXT לייבוא משימות
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div
+                      {...getRootProps()}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                        isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+                      }`}
+                    >
+                      <input {...getInputProps()} />
+                      <FileUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      {isDragActive ? (
+                        <p className="text-lg">שחרר את הקובץ כאן...</p>
+                      ) : (
+                        <div>
+                          <p className="text-lg mb-2">גרור קובץ לכאן או לחץ לבחירה</p>
+                          <p className="text-sm text-muted-foreground">
+                            נתמך: Excel (.xlsx, .xls), CSV, XML, TXT
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {importedData.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">
+                            תצוגה מקדימה ({importedData.length} שורות)
+                          </h3>
+                          <Button
+                            onClick={() => {
+                              setImportedData([]);
+                              toast({
+                                title: 'הנתונים נוקו',
+                                description: 'ניתן לייבא קובץ אחר',
+                              });
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            נקה
+                          </Button>
+                        </div>
+                        <div className="border rounded-lg overflow-auto max-h-[400px]">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                {Object.keys(importedData[0] || {}).map((key) => (
+                                  <TableHead key={key}>{key}</TableHead>
+                                ))}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {importedData.slice(0, 10).map((row, index) => (
+                                <TableRow key={index}>
+                                  {Object.values(row).map((value: any, cellIndex) => (
+                                    <TableCell key={cellIndex}>{value}</TableCell>
+                                  ))}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                          {importedData.length > 10 && (
+                            <p className="text-sm text-muted-foreground p-2 text-center">
+                              מוצגות 10 שורות ראשונות מתוך {importedData.length}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+                            ביטול
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              toast({
+                                title: 'בקרוב',
+                                description: 'הפונקציה בפיתוח - ייבוא אוטומטי למערכת',
+                              });
+                            }}
+                          >
+                            ייבא למערכת
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Button onClick={exportToCSV} variant="outline" size="sm">
                 <Download className="h-4 w-4 ml-1" />
                 ייצא ל-CSV
