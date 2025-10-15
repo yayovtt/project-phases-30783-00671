@@ -196,12 +196,12 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
 
   return (
     <div className="space-y-4">
-      {isAdmin && (
-        <div className="flex justify-end gap-2">
-          <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm">
-            <Plus className="h-4 w-4 ml-1" />
-            הוסף קטגוריה
-          </Button>
+      <div className="flex justify-end gap-2">
+        <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm">
+          <Plus className="h-4 w-4 ml-1" />
+          הוסף קטגוריה
+        </Button>
+        {isAdmin && (
           <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -290,8 +290,8 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-6" style={{ gridTemplateColumns: `repeat(${statuses.length}, minmax(0, 1fr))` }}>
         {statuses.map((statusConfig) => {

@@ -245,7 +245,7 @@ export function RoadmapView({ categories, projectId, tasks }: RoadmapViewProps) 
                               נדרש
                             </Badge>
                           )}
-                          {isAdmin && projectTask && (
+                          {projectTask && (
                             <Button
                               variant="ghost"
                               size="sm"
