@@ -44,14 +44,7 @@ export const CommandPalette = ({ projectId, onNavigate }: CommandPaletteProps) =
   };
 
   return (
-    <>
-      <div className="fixed bottom-4 left-4 z-50">
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-          <span className="text-xs">⌘</span>K
-        </kbd>
-      </div>
-
-      <CommandDialog open={open} onOpenChange={setOpen}>
+    <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="חפש פעולות, דפים, משימות..." />
         <CommandList>
           <CommandEmpty>לא נמצאו תוצאות</CommandEmpty>
@@ -97,6 +90,5 @@ export const CommandPalette = ({ projectId, onNavigate }: CommandPaletteProps) =
           )}
         </CommandList>
       </CommandDialog>
-    </>
   );
 };
