@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -19,6 +19,7 @@ import { TaskFilters } from './TaskFilters';
 import { OfflineIndicator } from '@/components/ui/offline-indicator';
 import { ExportImport } from './ExportImport';
 import { BackupRestore } from './BackupRestore';
+import { CalendarView } from './views/CalendarView';
 
 interface Category {
   id: string;
@@ -35,6 +36,9 @@ interface Task {
   description: string | null;
   order_index: number;
   is_required: boolean;
+  due_date?: string | null;
+  estimated_hours?: number | null;
+  priority?: "low" | "medium" | "high" | "urgent";
 }
 
 interface ProjectTask {
@@ -43,6 +47,9 @@ interface ProjectTask {
   completed: boolean;
   status: string;
   notes: string | null;
+  started_at?: string | null;
+  due_date_override?: string | null;
+  actual_hours?: number | null;
 }
 
 interface WorkflowCategoriesProps {
@@ -269,9 +276,13 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
       />
 
       <Tabs defaultValue="list" className="w-full" dir="rtl">
-        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full">
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full flex-wrap">
           <TabsTrigger value="list" className="flex-1">רשימת משימות</TabsTrigger>
           <TabsTrigger value="timeline" className="flex-1">ציר זמן</TabsTrigger>
+          <TabsTrigger value="calendar" className="flex-1">
+            <CalendarIcon className="h-4 w-4 ml-1" />
+            לוח שנה
+          </TabsTrigger>
           <TabsTrigger value="flow" className="flex-1">זרימה אופקית</TabsTrigger>
           <TabsTrigger value="vertical" className="flex-1">זרימה אנכית</TabsTrigger>
           <TabsTrigger value="roadmap" className="flex-1">מפת דרך</TabsTrigger>
@@ -587,6 +598,17 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
             onToggleTask={(taskId, completed) =>
               toggleTaskMutation.mutate({ taskId, completed })
             }
+          />
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <CalendarView
+            categories={categories.map((category) => ({
+              ...category,
+              tasks: tasks.filter((t) => t.category_id === category.id),
+            }))}
+            projectTasks={projectTasks || []}
+            isTaskCompleted={isTaskCompleted}
           />
         </TabsContent>
 

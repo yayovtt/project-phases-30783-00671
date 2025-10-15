@@ -67,37 +67,46 @@ export type Database = {
       }
       project_tasks: {
         Row: {
+          actual_hours: number | null
           completed: boolean | null
           completed_at: string | null
           completed_by: string | null
           created_at: string | null
+          due_date_override: string | null
           id: string
           notes: string | null
           project_id: string
+          started_at: string | null
           status: string | null
           task_id: string
           updated_at: string | null
         }
         Insert: {
+          actual_hours?: number | null
           completed?: boolean | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
+          due_date_override?: string | null
           id?: string
           notes?: string | null
           project_id: string
+          started_at?: string | null
           status?: string | null
           task_id: string
           updated_at?: string | null
         }
         Update: {
+          actual_hours?: number | null
           completed?: boolean | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
+          due_date_override?: string | null
           id?: string
           notes?: string | null
           project_id?: string
+          started_at?: string | null
           status?: string | null
           task_id?: string
           updated_at?: string | null
@@ -163,28 +172,37 @@ export type Database = {
           category_id: string
           created_at: string | null
           description: string | null
+          due_date: string | null
+          estimated_hours: number | null
           id: string
           is_required: boolean | null
           name: string
-          order_index: number
+          order_index: number | null
+          priority: string | null
         }
         Insert: {
           category_id: string
           created_at?: string | null
           description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
           id?: string
           is_required?: boolean | null
           name: string
-          order_index: number
+          order_index?: number | null
+          priority?: string | null
         }
         Update: {
           category_id?: string
           created_at?: string | null
           description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
           id?: string
           is_required?: boolean | null
           name?: string
-          order_index?: number
+          order_index?: number | null
+          priority?: string | null
         }
         Relationships: [
           {

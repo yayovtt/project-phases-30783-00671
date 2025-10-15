@@ -24,9 +24,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, CalendarIcon, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { he } from 'date-fns/locale';
+import { PriorityBadge } from './PriorityBadge';
 
 interface Task {
   id: string;
@@ -35,6 +42,9 @@ interface Task {
   description: string | null;
   order_index: number;
   is_required: boolean;
+  due_date?: string | null;
+  estimated_hours?: number | null;
+  priority?: "low" | "medium" | "high" | "urgent";
 }
 
 interface TaskManagementDialogProps {
@@ -61,6 +71,9 @@ export const TaskManagementDialog = ({
     name: '',
     description: '',
     is_required: false,
+    due_date: '',
+    estimated_hours: '',
+    priority: 'medium' as "low" | "medium" | "high" | "urgent",
   });
 
   const categoryTasks = tasks.filter((t) => t.category_id === categoryId);
@@ -74,6 +87,9 @@ export const TaskManagementDialog = ({
         description: data.description || null,
         is_required: data.is_required,
         order_index: maxOrder + 1,
+        due_date: data.due_date || null,
+        estimated_hours: data.estimated_hours ? parseInt(data.estimated_hours) : null,
+        priority: data.priority,
       });
       if (error) throw error;
     },
@@ -81,7 +97,7 @@ export const TaskManagementDialog = ({
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast({ title: 'המשימה נוספה בהצלחה' });
       setIsAdding(false);
-      setFormData({ name: '', description: '', is_required: false });
+      setFormData({ name: '', description: '', is_required: false, due_date: '', estimated_hours: '', priority: 'medium' });
     },
     onError: (error: Error) => {
       toast({ title: 'שגיאה', description: error.message, variant: 'destructive' });
@@ -96,6 +112,9 @@ export const TaskManagementDialog = ({
           name: data.name,
           description: data.description || null,
           is_required: data.is_required,
+          due_date: data.due_date || null,
+          estimated_hours: data.estimated_hours ? parseInt(data.estimated_hours) : null,
+          priority: data.priority,
         })
         .eq('id', data.id);
       if (error) throw error;
@@ -140,6 +159,9 @@ export const TaskManagementDialog = ({
       name: task.name,
       description: task.description || '',
       is_required: task.is_required,
+      due_date: task.due_date || '',
+      estimated_hours: task.estimated_hours?.toString() || '',
+      priority: task.priority || 'medium',
     });
     setIsAdding(true);
   };
@@ -185,6 +207,69 @@ export const TaskManagementDialog = ({
                         rows={3}
                       />
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>תאריך יעד</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-right font-normal",
+                                !formData.due_date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="ml-2 h-4 w-4" />
+                              {formData.due_date ? (
+                                format(new Date(formData.due_date), "PPP", { locale: he })
+                              ) : (
+                                <span>בחר תאריך</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={formData.due_date ? new Date(formData.due_date) : undefined}
+                              onSelect={(date) => setFormData({ ...formData, due_date: date?.toISOString() || '' })}
+                              locale={he}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="estimated_hours">שעות משוערות</Label>
+                        <Input
+                          id="estimated_hours"
+                          type="number"
+                          min="0"
+                          value={formData.estimated_hours}
+                          onChange={(e) => setFormData({ ...formData, estimated_hours: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">עדיפות</Label>
+                      <Select
+                        value={formData.priority}
+                        onValueChange={(value) => setFormData({ ...formData, priority: value as any })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">נמוכה</SelectItem>
+                          <SelectItem value="medium">בינונית</SelectItem>
+                          <SelectItem value="high">גבוהה</SelectItem>
+                          <SelectItem value="urgent">דחוף</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="is_required"
@@ -207,7 +292,7 @@ export const TaskManagementDialog = ({
                         onClick={() => {
                           setIsAdding(false);
                           setEditingTask(null);
-                          setFormData({ name: '', description: '', is_required: false });
+                          setFormData({ name: '', description: '', is_required: false, due_date: '', estimated_hours: '', priority: 'medium' });
                         }}
                       >
                         ביטול
@@ -229,11 +314,26 @@ export const TaskManagementDialog = ({
                   <Card key={task.id}>
                     <CardContent className="flex items-start justify-between p-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="font-medium">{task.name}</p>
                           {task.is_required && (
                             <Badge variant="outline" className="text-xs">
                               חובה
+                            </Badge>
+                          )}
+                          {task.priority && (
+                            <PriorityBadge priority={task.priority} className="text-xs" />
+                          )}
+                          {task.due_date && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <CalendarIcon className="h-3 w-3" />
+                              {format(new Date(task.due_date), "d/M/yy", { locale: he })}
+                            </Badge>
+                          )}
+                          {task.estimated_hours && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <Clock className="h-3 w-3" />
+                              {task.estimated_hours}ש׳
                             </Badge>
                           )}
                         </div>
