@@ -136,7 +136,7 @@ export const CategoryManagementDialog = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>ניהול קטגוריות</DialogTitle>
             <DialogDescription>הוסף, ערוך או מחק קטגוריות</DialogDescription>
@@ -252,7 +252,7 @@ export const CategoryManagementDialog = ({
       </Dialog>
 
       <AlertDialog open={!!deletingCategoryId} onOpenChange={() => setDeletingCategoryId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
             <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
             <AlertDialogDescription>

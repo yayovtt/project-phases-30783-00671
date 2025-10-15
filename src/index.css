@@ -101,5 +101,26 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    direction: rtl;
+    text-align: right;
+  }
+
+  /* RTL specific adjustments */
+  [dir="rtl"] .flex-row {
+    flex-direction: row-reverse;
+  }
+
+  /* Fix dialog positioning for RTL */
+  [dir="rtl"] [role="dialog"],
+  [dir="rtl"] [role="alertdialog"] {
+    direction: rtl;
+    text-align: right;
+  }
+
+  /* Fix select dropdowns for RTL */
+  [dir="rtl"] [role="listbox"],
+  [dir="rtl"] [role="menu"] {
+    direction: rtl;
+    text-align: right;
   }
 }

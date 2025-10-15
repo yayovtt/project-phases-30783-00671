@@ -147,7 +147,7 @@ export const TaskManagementDialog = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>ניהול משימות - {categoryName}</DialogTitle>
             <DialogDescription>הוסף, ערוך או מחק משימות בקטגוריה זו</DialogDescription>
@@ -263,7 +263,7 @@ export const TaskManagementDialog = ({
       </Dialog>
 
       <AlertDialog open={!!deletingTaskId} onOpenChange={() => setDeletingTaskId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
             <AlertDialogTitle>האם אתה בטוח?</AlertDialogTitle>
             <AlertDialogDescription>

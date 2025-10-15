@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useSyncedQuery } from '@/hooks/useSyncedQuery';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowLeft, CheckCircle2, Circle, Settings } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -14,6 +15,8 @@ import { TimelineView } from './views/TimelineView';
 import { CategoryManagementDialog } from './CategoryManagementDialog';
 import { TaskManagementDialog } from './TaskManagementDialog';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { TaskFilters } from './TaskFilters';
+import { OfflineIndicator } from '@/components/ui/offline-indicator';
 
 interface Category {
   id: string;
@@ -61,7 +64,13 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     notes: string | null;
   } | null>(null);
 
-  const { data: categories } = useQuery({
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [requiredOnly, setRequiredOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const { data: categories } = useSyncedQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -74,7 +83,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     },
   });
 
-  const { data: tasks } = useQuery({
+  const { data: tasks } = useSyncedQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -87,7 +96,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     },
   });
 
-  const { data: projectTasks } = useQuery({
+  const { data: projectTasks } = useSyncedQuery({
     queryKey: ['project-tasks', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -163,6 +172,46 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     }));
   };
 
+  // Filter functions
+  const filterTasks = () => {
+    if (!tasks) return [];
+
+    return tasks.filter((task) => {
+      // Search filter
+      if (searchQuery && !task.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      // Category filter
+      if (selectedCategory !== 'all' && task.category_id !== selectedCategory) {
+        return false;
+      }
+
+      // Required filter
+      if (requiredOnly && !task.is_required) {
+        return false;
+      }
+
+      // Status filter
+      if (statusFilter !== 'all') {
+        const isCompleted = isTaskCompleted(task.id);
+        if (statusFilter === 'completed' && !isCompleted) return false;
+        if (statusFilter === 'pending' && isCompleted) return false;
+      }
+
+      return true;
+    });
+  };
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setRequiredOnly(false);
+    setStatusFilter('all');
+  };
+
+  const filteredTasks = filterTasks();
+
   if (!categories || !tasks) {
     return (
       <div className="space-y-4">
@@ -191,15 +240,31 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
+      <OfflineIndicator />
+      
       {isAdmin && (
-        <div className="flex justify-end">
+        <div className="flex justify-start">
           <Button onClick={() => setCategoryManagementOpen(true)} variant="outline">
-            <Settings className="ml-2 h-4 w-4" />
+            <Settings className="mr-2 h-4 w-4" />
             ניהול קטגוריות
           </Button>
         </div>
       )}
+
+      <TaskFilters
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        requiredOnly={requiredOnly}
+        onRequiredOnlyChange={setRequiredOnly}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        categories={categories || []}
+        totalResults={filteredTasks.length}
+        onReset={resetFilters}
+      />
 
       <Tabs defaultValue="list" className="w-full" dir="rtl">
         <TabsList className="grid w-full grid-cols-5 mb-6">
@@ -212,7 +277,8 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
         <TabsContent value="list" className="space-y-4">
           {categories.map((category) => {
-            const categoryTasks = tasks.filter((t) => t.category_id === category.id);
+            const categoryTasks = filteredTasks.filter((t) => t.category_id === category.id);
+            if (categoryTasks.length === 0) return null;
             const progress = getCategoryProgress(category.id);
 
             return (
@@ -399,7 +465,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
                     {index < categories.length - 1 && (
                       <div className="flex items-center">
-                        <ArrowLeft className="h-12 w-12 text-primary animate-pulse" />
+                        <ArrowRight className="h-12 w-12 text-primary animate-pulse rotate-180" />
                       </div>
                     )}
                   </div>
