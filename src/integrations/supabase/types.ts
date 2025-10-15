@@ -211,6 +211,56 @@ export type Database = {
           },
         ]
       }
+      task_reminders: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          is_recurring: boolean | null
+          message: string | null
+          project_task_id: string
+          recurrence_pattern: string | null
+          reminder_time: string
+          sound_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          is_recurring?: boolean | null
+          message?: string | null
+          project_task_id: string
+          recurrence_pattern?: string | null
+          reminder_time: string
+          sound_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          is_recurring?: boolean | null
+          message?: string | null
+          project_task_id?: string
+          recurrence_pattern?: string | null
+          reminder_time?: string
+          sound_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_reminders_project_task_id_fkey"
+            columns: ["project_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           category_id: string

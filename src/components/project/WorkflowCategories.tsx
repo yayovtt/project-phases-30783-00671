@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -20,6 +20,9 @@ import { OfflineIndicator } from '@/components/ui/offline-indicator';
 import { ExportImport } from './ExportImport';
 import { BackupRestore } from './BackupRestore';
 import { CalendarView } from './views/CalendarView';
+import { ReminderManager } from '@/components/reminders/ReminderManager';
+import { ReminderNotification } from '@/components/reminders/ReminderNotification';
+import { useReminders } from '@/hooks/useReminders';
 
 interface Category {
   id: string;
@@ -63,6 +66,11 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [taskManagementOpen, setTaskManagementOpen] = useState(false);
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [selectedTaskForReminder, setSelectedTaskForReminder] = useState<{
+    projectTaskId: string;
+    taskName: string;
+  } | null>(null);
   const [selectedCategoryForTasks, setSelectedCategoryForTasks] = useState<{
     id: string;
     name: string;
@@ -72,6 +80,8 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     name: string;
     notes: string | null;
   } | null>(null);
+
+  const { activeReminders, dismissReminder } = useReminders();
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -380,28 +390,45 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                               </p>
                             )}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() =>
-                              handleOpenNotes(
-                                getProjectTaskId(task.id),
-                                task.name,
-                                projectTask?.notes || null
-                              )
-                            }
-                          >
-                            <MessageSquare className="h-4 w-4 ml-1" />
-                            {projectTask?.notes && (
-                              <Badge
-                                variant="secondary"
-                                className="mr-1 h-5 w-5 p-0 flex items-center justify-center rounded-full"
-                              >
-                                ✓
-                              </Badge>
-                            )}
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                setSelectedTaskForReminder({
+                                  projectTaskId: getProjectTaskId(task.id),
+                                  taskName: task.name,
+                                });
+                                setReminderDialogOpen(true);
+                              }}
+                              title="הגדר תזכורת"
+                            >
+                              <Bell className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() =>
+                                handleOpenNotes(
+                                  getProjectTaskId(task.id),
+                                  task.name,
+                                  projectTask?.notes || null
+                                )
+                              }
+                            >
+                              <MessageSquare className="h-4 w-4 ml-1" />
+                              {projectTask?.notes && (
+                                <Badge
+                                  variant="secondary"
+                                  className="mr-1 h-5 w-5 p-0 flex items-center justify-center rounded-full"
+                                >
+                                  ✓
+                                </Badge>
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}
@@ -625,6 +652,16 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
         </TabsContent>
       </Tabs>
 
+      {/* Active Reminders */}
+      {activeReminders.map((reminder) => (
+        <ReminderNotification
+          key={reminder.id}
+          message={reminder.message || "הגיע הזמן!"}
+          soundUrl={reminder.sound_url}
+          onDismiss={() => dismissReminder(reminder.id)}
+        />
+      ))}
+
       {selectedTask && (
         <TaskNotesDialog
           projectTaskId={selectedTask.id}
@@ -634,6 +671,18 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           onClose={() => {
             setNotesDialogOpen(false);
             setSelectedTask(null);
+          }}
+        />
+      )}
+
+      {selectedTaskForReminder && (
+        <ReminderManager
+          projectTaskId={selectedTaskForReminder.projectTaskId}
+          taskName={selectedTaskForReminder.taskName}
+          isOpen={reminderDialogOpen}
+          onClose={() => {
+            setReminderDialogOpen(false);
+            setSelectedTaskForReminder(null);
           }}
         />
       )}
