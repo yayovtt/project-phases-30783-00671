@@ -167,6 +167,50 @@ export type Database = {
         }
         Relationships: []
       }
+      task_attachments: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          project_task_id: string
+          uploaded_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          project_task_id: string
+          uploaded_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          project_task_id?: string
+          uploaded_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_project_task_id_fkey"
+            columns: ["project_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           category_id: string
