@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Upload, FileJson, FileSpreadsheet, File, CheckCircle2 } from 'lucide-react';
+import { Download, Upload, FileJson, FileSpreadsheet, File, CheckCircle2, Calendar as CalendarIcon, FileCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 interface ExportImportProps {
   projectId: string;
@@ -124,6 +125,126 @@ export const ExportImport = ({ projectId }: ExportImportProps) => {
     }
   };
 
+  const handleExportICalendar = async () => {
+    setIsExporting(true);
+    try {
+      const { data: projectTasks } = await supabase
+        .from('project_tasks')
+        .select('*, tasks(name, description, priority)')
+        .eq('project_id', projectId)
+        .not('due_date_override', 'is', null);
+
+      let icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Project Manager//iCal//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+      ];
+
+      projectTasks?.forEach((pt: any) => {
+        const task = pt.tasks;
+        const startDate = pt.started_at ? new Date(pt.started_at) : new Date();
+        const endDate = new Date(pt.due_date_override);
+        
+        icsContent.push('BEGIN:VEVENT');
+        icsContent.push(`UID:${pt.id}@projectmanager.com`);
+        icsContent.push(`DTSTAMP:${format(new Date(), "yyyyMMdd'T'HHmmss'Z'")}`);
+        icsContent.push(`DTSTART:${format(startDate, "yyyyMMdd'T'HHmmss'Z'")}`);
+        icsContent.push(`DTEND:${format(endDate, "yyyyMMdd'T'HHmmss'Z'")}`);
+        icsContent.push(`SUMMARY:${task?.name || 'משימה'}`);
+        icsContent.push(`DESCRIPTION:${task?.description || ''}`);
+        icsContent.push(`PRIORITY:${task?.priority === 'urgent' ? '1' : task?.priority === 'high' ? '3' : '5'}`);
+        icsContent.push(`STATUS:${pt.completed ? 'COMPLETED' : 'NEEDS-ACTION'}`);
+        icsContent.push('END:VEVENT');
+      });
+
+      icsContent.push('END:VCALENDAR');
+      
+      const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `project-calendar-${new Date().toISOString().split('T')[0]}.ics`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'יוצא בהצלחה',
+        description: 'קובץ לוח השנה נוצר',
+      });
+    } catch (error) {
+      console.error('iCalendar export error:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'לא ניתן לייצא לוח שנה',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportMSProject = async () => {
+    setIsExporting(true);
+    try {
+      const { data: projectTasks } = await supabase
+        .from('project_tasks')
+        .select('*, tasks(name, description, priority, estimated_hours)')
+        .eq('project_id', projectId);
+
+      let xmlContent = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<Project xmlns="http://schemas.microsoft.com/project">',
+        '  <Tasks>',
+      ];
+
+      projectTasks?.forEach((pt: any, index: number) => {
+        const task = pt.tasks;
+        xmlContent.push('    <Task>');
+        xmlContent.push(`      <UID>${index + 1}</UID>`);
+        xmlContent.push(`      <ID>${index + 1}</ID>`);
+        xmlContent.push(`      <Name>${task?.name || 'משימה'}</Name>`);
+        xmlContent.push(`      <PercentComplete>${pt.progress || 0}</PercentComplete>`);
+        xmlContent.push(`      <Priority>${task?.priority === 'urgent' ? '1000' : task?.priority === 'high' ? '800' : '500'}</Priority>`);
+        if (pt.started_at) {
+          xmlContent.push(`      <Start>${format(new Date(pt.started_at), 'yyyy-MM-dd')}</Start>`);
+        }
+        if (pt.due_date_override) {
+          xmlContent.push(`      <Finish>${format(new Date(pt.due_date_override), 'yyyy-MM-dd')}</Finish>`);
+        }
+        xmlContent.push(`      <Work>PT${task?.estimated_hours || 0}H</Work>`);
+        xmlContent.push(`      <ActualWork>PT${pt.actual_hours || 0}H</ActualWork>`);
+        xmlContent.push('    </Task>');
+      });
+
+      xmlContent.push('  </Tasks>');
+      xmlContent.push('</Project>');
+      
+      const blob = new Blob([xmlContent.join('\n')], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `project-${new Date().toISOString().split('T')[0]}.xml`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'יוצא בהצלחה',
+        description: 'קובץ MS Project נוצר',
+      });
+    } catch (error) {
+      console.error('MS Project export error:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'לא ניתן לייצא MS Project',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleImportJSON = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -191,6 +312,24 @@ export const ExportImport = ({ projectId }: ExportImportProps) => {
           >
             <FileSpreadsheet className="ml-2 h-4 w-4" />
             ייצא כ-CSV (לאקסל)
+          </Button>
+          <Button
+            onClick={handleExportICalendar}
+            disabled={isExporting}
+            className="w-full justify-start"
+            variant="outline"
+          >
+            <CalendarIcon className="ml-2 h-4 w-4" />
+            ייצא כ-iCalendar (.ics)
+          </Button>
+          <Button
+            onClick={handleExportMSProject}
+            disabled={isExporting}
+            className="w-full justify-start"
+            variant="outline"
+          >
+            <FileCode className="ml-2 h-4 w-4" />
+            ייצא ל-Microsoft Project (.xml)
           </Button>
         </CardContent>
       </Card>

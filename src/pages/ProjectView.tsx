@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, Building2, MapPin } from 'lucide-react';
 import { WorkflowCategories } from '@/components/project/WorkflowCategories';
+import { NotificationCenter } from '@/components/project/NotificationCenter';
 
 interface Project {
   id: string;
@@ -77,6 +78,7 @@ const ProjectView = () => {
                 </p>
               )}
             </div>
+            <NotificationCenter />
           </div>
         </div>
       </header>
