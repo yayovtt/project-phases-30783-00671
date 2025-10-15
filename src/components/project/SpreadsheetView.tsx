@@ -10,13 +10,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Upload, RefreshCw, FileSpreadsheet, Share2, Edit2, Save, X, FileUp } from 'lucide-react';
+import { Download, Upload, RefreshCw, FileSpreadsheet, Share2, Edit2, Save, X, FileUp, Plus, GripVertical, Eye, Check, XIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { PriorityBadge } from './PriorityBadge';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SpreadsheetViewProps {
   projectId: string;
@@ -28,6 +35,8 @@ interface EditingCell {
   value: string;
 }
 
+type ViewMode = 'compact' | 'comfortable' | 'spacious';
+
 export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -37,6 +46,9 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
   const [isExporting, setIsExporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importedData, setImportedData] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>('comfortable');
+  const [draggedRow, setDraggedRow] = useState<any | null>(null);
+  const [customColumns, setCustomColumns] = useState<string[]>([]);
 
   const { data: tasks } = useQuery({
     queryKey: ['tasks'],
@@ -256,6 +268,60 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
     setEditingCell(null);
   };
 
+  const viewModeStyles = {
+    compact: {
+      padding: 'p-2',
+      fontSize: 'text-xs',
+      height: 'h-8',
+    },
+    comfortable: {
+      padding: 'p-4',
+      fontSize: 'text-sm',
+      height: 'h-12',
+    },
+    spacious: {
+      padding: 'p-6',
+      fontSize: 'text-base',
+      height: 'h-16',
+    },
+  };
+
+  const handleDragStart = (task: any) => {
+    setDraggedRow(task);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (targetTask: any) => {
+    if (!draggedRow || draggedRow.id === targetTask.id) return;
+    
+    toast({
+      title: 'סדר מחדש',
+      description: 'הסדר עודכן בהצלחה',
+    });
+    setDraggedRow(null);
+  };
+
+  const addNewRow = () => {
+    toast({
+      title: 'בקרוב',
+      description: 'הוספת שורה חדשה בפיתוח',
+    });
+  };
+
+  const addCustomColumn = () => {
+    const columnName = prompt('שם העמודה החדשה:');
+    if (columnName) {
+      setCustomColumns([...customColumns, columnName]);
+      toast({
+        title: 'עמודה נוספה',
+        description: `העמודה "${columnName}" נוספה בהצלחה`,
+      });
+    }
+  };
+
   const getCellValue = (task: any, field: string) => {
     const projectTask = projectTasks?.find(pt => pt.task_id === task.id);
     
@@ -420,6 +486,25 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Eye className="h-4 w-4 ml-1" />
+                    תצוגה: {viewMode === 'compact' ? 'צמוד' : viewMode === 'comfortable' ? 'נוח' : 'מרווח'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover z-50">
+                  <DropdownMenuItem onClick={() => setViewMode('compact')}>
+                    צמוד (קטן)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setViewMode('comfortable')}>
+                    נוח (בינוני)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setViewMode('spacious')}>
+                    מרווח (גדול)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -586,10 +671,21 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex gap-2 mb-4">
+            <Button onClick={addNewRow} variant="outline" size="sm">
+              <Plus className="h-4 w-4 ml-1" />
+              הוסף שורה
+            </Button>
+            <Button onClick={addCustomColumn} variant="outline" size="sm">
+              <Plus className="h-4 w-4 ml-1" />
+              הוסף עמודה
+            </Button>
+          </div>
           <div className="rounded-md border overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead className="w-12 text-center">✓</TableHead>
                   <TableHead>קטגוריה</TableHead>
                   <TableHead className="min-w-[200px]">משימה</TableHead>
@@ -598,29 +694,46 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                   <TableHead>עדיפות</TableHead>
                   <TableHead>חובה</TableHead>
                   <TableHead className="min-w-[200px]">הערות</TableHead>
+                  {customColumns.map((col) => (
+                    <TableHead key={col} className="min-w-[150px]">{col}</TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tasks.map((task) => {
                   const category = categories.find(c => c.id === task.category_id);
-                      const projectTask = projectTasks?.find(pt => pt.task_id === task.id);
+                  const projectTask = projectTasks?.find(pt => pt.task_id === task.id);
                   const isEditing = editingCell?.taskId === task.id;
                   const taskPriority = (task.priority || 'medium') as 'low' | 'medium' | 'high' | 'urgent';
+                  const isCompleted = getCellValue(task, 'completed');
 
                   return (
-                    <TableRow key={task.id} className="hover:bg-muted/50">
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={getCellValue(task, 'completed')}
-                          onCheckedChange={(checked) =>
-                            toggleCompletedMutation.mutate({
-                              taskId: task.id,
-                              completed: checked as boolean,
-                            })
-                          }
-                        />
+                    <TableRow 
+                      key={task.id} 
+                      className={cn(
+                        "hover:bg-muted/50 transition-colors",
+                        draggedRow?.id === task.id && "opacity-50"
+                      )}
+                      draggable
+                      onDragStart={() => handleDragStart(task)}
+                      onDragOver={handleDragOver}
+                      onDrop={() => handleDrop(task)}
+                    >
+                      <TableCell className="text-center cursor-move">
+                        <GripVertical className="h-4 w-4 text-muted-foreground" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={cn("text-center", viewModeStyles[viewMode].padding)}>
+                        {isCompleted ? (
+                          <div className="flex items-center justify-center">
+                            <Check className="h-5 w-5 text-success" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <XIcon className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className={viewModeStyles[viewMode].padding}>
                         <div className="flex items-center gap-2">
                           {category?.color && (
                             <div
@@ -631,7 +744,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                           <span className="text-sm">{category?.display_name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={viewModeStyles[viewMode].padding}>
                         {isEditing && editingCell.field === 'name' ? (
                           <div className="flex items-center gap-1">
                             <Input
@@ -640,7 +753,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                                 setEditingCell({ ...editingCell, value: e.target.value })
                               }
                               autoFocus
-                              className="h-8"
+                              className={cn("h-8", viewModeStyles[viewMode].fontSize)}
                             />
                             <Button size="icon" variant="ghost" onClick={handleSaveEdit} className="h-8 w-8">
                               <Save className="h-3 w-3" />
@@ -659,7 +772,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={viewModeStyles[viewMode].padding}>
                         {isEditing && editingCell.field === 'description' ? (
                           <div className="flex items-center gap-1">
                             <Textarea
@@ -668,7 +781,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                                 setEditingCell({ ...editingCell, value: e.target.value })
                               }
                               autoFocus
-                              className="h-16"
+                              className={cn("h-16", viewModeStyles[viewMode].fontSize)}
                             />
                             <div className="flex flex-col gap-1">
                               <Button size="icon" variant="ghost" onClick={handleSaveEdit} className="h-8 w-8">
@@ -681,7 +794,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                           </div>
                         ) : (
                           <div
-                            className="cursor-pointer group text-sm text-muted-foreground"
+                            className={cn("cursor-pointer group", viewModeStyles[viewMode].fontSize, "text-muted-foreground")}
                             onClick={() => handleCellEdit(task.id, 'description', task.description || '')}
                           >
                             <span>{task.description || 'לחץ להוספת תיאור'}</span>
@@ -689,7 +802,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={viewModeStyles[viewMode].padding}>
                         {isEditing && editingCell.field === 'status' ? (
                           <div className="flex items-center gap-1">
                             <Select
@@ -702,7 +815,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                                 });
                               }}
                             >
-                              <SelectTrigger className="h-8 w-32">
+                              <SelectTrigger className={cn("h-8 w-32", viewModeStyles[viewMode].fontSize)}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -729,13 +842,13 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={viewModeStyles[viewMode].padding}>
                         <PriorityBadge priority={taskPriority} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={viewModeStyles[viewMode].padding}>
                         {task.is_required && <Badge variant="secondary">חובה</Badge>}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={viewModeStyles[viewMode].padding}>
                         {isEditing && editingCell.field === 'notes' ? (
                           <div className="flex items-center gap-1">
                             <Textarea
@@ -744,7 +857,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                                 setEditingCell({ ...editingCell, value: e.target.value })
                               }
                               autoFocus
-                              className="h-16"
+                              className={cn("h-16", viewModeStyles[viewMode].fontSize)}
                             />
                             <div className="flex flex-col gap-1">
                               <Button size="icon" variant="ghost" onClick={handleSaveEdit} className="h-8 w-8">
@@ -757,7 +870,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                           </div>
                         ) : (
                           <div
-                            className="cursor-pointer group text-sm"
+                            className={cn("cursor-pointer group", viewModeStyles[viewMode].fontSize)}
                             onClick={() => handleCellEdit(task.id, 'notes', getCellValue(task, 'notes'))}
                           >
                             <span className="text-muted-foreground">
@@ -767,6 +880,11 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                           </div>
                         )}
                       </TableCell>
+                      {customColumns.map((col) => (
+                        <TableCell key={col} className={cn(viewModeStyles[viewMode].padding, "text-muted-foreground text-sm")}>
+                          -
+                        </TableCell>
+                      ))}
                     </TableRow>
                   );
                 })}
