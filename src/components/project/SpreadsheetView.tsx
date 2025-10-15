@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Upload, RefreshCw, FileSpreadsheet, Share2, Edit2, Save, X, FileUp, Plus, GripVertical, Eye, Check, XIcon } from 'lucide-react';
+import { Download, Upload, RefreshCw, FileSpreadsheet, Share2, Edit2, Save, X, FileUp, Plus, GripVertical, Eye, Check, XIcon, ArrowUp, ArrowDown, ArrowUpDown, ListOrdered } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { PriorityBadge } from './PriorityBadge';
@@ -49,6 +49,13 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>('comfortable');
   const [draggedRow, setDraggedRow] = useState<any | null>(null);
   const [customColumns, setCustomColumns] = useState<string[]>([]);
+  const [sortConfig, setSortConfig] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
+  const [multiSortConfig, setMultiSortConfig] = useState<Array<{
+    field: string;
+    direction: 'asc' | 'desc';
+    priority: number;
+  }>>([]);
+  const [sortDialogOpen, setSortDialogOpen] = useState(false);
 
   const { data: tasks } = useQuery({
     queryKey: ['tasks'],
@@ -332,6 +339,157 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
     return task[field];
   };
 
+  const getFieldValue = (task: any, field: string): any => {
+    const category = categories?.find(c => c.id === task.category_id);
+    const projectTask = projectTasks?.find(pt => pt.task_id === task.id);
+    
+    switch (field) {
+      case 'category':
+        return category?.display_name || '';
+      case 'name':
+        return task.name || '';
+      case 'description':
+        return task.description || '';
+      case 'status':
+        return projectTask?.status || 'pending';
+      case 'priority':
+        return task.priority || 'medium';
+      case 'is_required':
+        return task.is_required;
+      case 'completed':
+        return projectTask?.completed || false;
+      case 'due_date':
+        return task.due_date || '';
+      case 'estimated_hours':
+        return task.estimated_hours || 0;
+      case 'notes':
+        return projectTask?.notes || '';
+      default:
+        return '';
+    }
+  };
+
+  const compareValues = (a: any, b: any, field: string, direction: 'asc' | 'desc'): number => {
+    let aVal = getFieldValue(a, field);
+    let bVal = getFieldValue(b, field);
+    
+    // Special handling for priority
+    if (field === 'priority') {
+      const priorityOrder: Record<string, number> = { urgent: 4, high: 3, medium: 2, low: 1 };
+      aVal = priorityOrder[aVal] || 0;
+      bVal = priorityOrder[bVal] || 0;
+    }
+    
+    // Special handling for status
+    if (field === 'status') {
+      const statusOrder: Record<string, number> = { pending: 1, in_progress: 2, completed: 3, blocked: 4 };
+      aVal = statusOrder[aVal] || 0;
+      bVal = statusOrder[bVal] || 0;
+    }
+    
+    // Handle null/undefined
+    if (aVal === null || aVal === undefined) aVal = '';
+    if (bVal === null || bVal === undefined) bVal = '';
+    
+    // Compare
+    if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+    if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+    return 0;
+  };
+
+  const applySorting = (tasksList: any[]): any[] => {
+    if (!tasksList) return [];
+    
+    // If no sorting is configured, return original order (by category and order_index)
+    if (multiSortConfig.length === 0 && !sortConfig) {
+      return tasksList;
+    }
+    
+    return [...tasksList].sort((a, b) => {
+      // Apply multi-level sort if configured
+      if (multiSortConfig.length > 0) {
+        const sortedConfigs = [...multiSortConfig].sort((x, y) => x.priority - y.priority);
+        for (const config of sortedConfigs) {
+          const result = compareValues(a, b, config.field, config.direction);
+          if (result !== 0) return result;
+        }
+        return 0;
+      }
+      
+      // Apply simple sort
+      if (sortConfig) {
+        return compareValues(a, b, sortConfig.field, sortConfig.direction);
+      }
+      
+      return 0;
+    });
+  };
+
+  const handleColumnSort = (field: string) => {
+    // Clear multi-sort when using simple sort
+    setMultiSortConfig([]);
+    
+    if (sortConfig?.field === field) {
+      setSortConfig({
+        field,
+        direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'
+      });
+    } else {
+      setSortConfig({ field, direction: 'asc' });
+    }
+  };
+
+  const handleResetSort = () => {
+    setSortConfig(null);
+    setMultiSortConfig([]);
+    toast({
+      title: 'המיון אופס',
+      description: 'חזרה לסדר ברירת המחדל',
+    });
+  };
+
+  const addSortLevel = () => {
+    if (multiSortConfig.length >= 5) {
+      toast({
+        title: 'הגבלה',
+        description: 'ניתן להוסיף עד 5 רמות מיון',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setMultiSortConfig([
+      ...multiSortConfig,
+      { field: 'category', direction: 'asc', priority: multiSortConfig.length }
+    ]);
+  };
+
+  const updateSortLevel = (index: number, field: string, direction: 'asc' | 'desc') => {
+    const updated = [...multiSortConfig];
+    updated[index] = { ...updated[index], field, direction };
+    setMultiSortConfig(updated);
+  };
+
+  const removeSortLevel = (index: number) => {
+    const updated = multiSortConfig.filter((_, i) => i !== index);
+    // Update priorities
+    const reindexed = updated.map((config, i) => ({ ...config, priority: i }));
+    setMultiSortConfig(reindexed);
+  };
+
+  const applyMultiSort = () => {
+    setSortConfig(null); // Clear simple sort
+    setSortDialogOpen(false);
+    toast({
+      title: 'מיון מותקדם הוחל',
+      description: `${multiSortConfig.length} רמות מיון פעילות`,
+    });
+  };
+
+  const getSortedTasks = () => {
+    return applySorting(tasks || []);
+  };
+
   const handleFileUpload = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
@@ -486,6 +644,117 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              {(sortConfig || multiSortConfig.length > 0) && (
+                <Button onClick={handleResetSort} variant="outline" size="sm">
+                  <X className="h-4 w-4 ml-1" />
+                  איפוס מיון
+                </Button>
+              )}
+              
+              <Dialog open={sortDialogOpen} onOpenChange={setSortDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <ListOrdered className="h-4 w-4 ml-1" />
+                    מיון מתקדם
+                    {multiSortConfig.length > 0 && (
+                      <Badge variant="secondary" className="mr-1 h-5 px-1.5">
+                        {multiSortConfig.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl" dir="rtl">
+                  <DialogHeader>
+                    <DialogTitle>מיון מתקדם</DialogTitle>
+                    <DialogDescription>
+                      הגדר עד 5 רמות מיון להצגת המשימות לפי סדר העדיפויות שלך
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    {multiSortConfig.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>לא הוגדרו רמות מיון</p>
+                        <p className="text-sm">לחץ על "הוסף רמת מיון" כדי להתחיל</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {multiSortConfig.map((config, index) => (
+                          <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
+                            <span className="text-sm font-medium min-w-[60px]">
+                              רמה {index + 1}:
+                            </span>
+                            <Select
+                              value={config.field}
+                              onValueChange={(value) => updateSortLevel(index, value, config.direction)}
+                            >
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="category">קטגוריה</SelectItem>
+                                <SelectItem value="name">שם המשימה</SelectItem>
+                                <SelectItem value="status">סטטוס</SelectItem>
+                                <SelectItem value="priority">עדיפות</SelectItem>
+                                <SelectItem value="is_required">חובה</SelectItem>
+                                <SelectItem value="completed">הושלם</SelectItem>
+                                <SelectItem value="due_date">תאריך יעד</SelectItem>
+                                <SelectItem value="estimated_hours">שעות משוערות</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateSortLevel(index, config.field, config.direction === 'asc' ? 'desc' : 'asc')}
+                              className="gap-1"
+                            >
+                              {config.direction === 'asc' ? (
+                                <>
+                                  <ArrowUp className="h-4 w-4" />
+                                  עולה
+                                </>
+                              ) : (
+                                <>
+                                  <ArrowDown className="h-4 w-4" />
+                                  יורד
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeSortLevel(index)}
+                              className="mr-auto"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={addSortLevel}
+                        variant="outline"
+                        size="sm"
+                        disabled={multiSortConfig.length >= 5}
+                        className="flex-1"
+                      >
+                        <Plus className="h-4 w-4 ml-1" />
+                        הוסף רמת מיון
+                      </Button>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-2 border-t">
+                      <Button variant="outline" onClick={() => setSortDialogOpen(false)}>
+                        ביטול
+                      </Button>
+                      <Button onClick={applyMultiSort} disabled={multiSortConfig.length === 0}>
+                        החל מיון
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -687,12 +956,92 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
                   <TableHead className="w-12 text-center">✓</TableHead>
-                  <TableHead>קטגוריה</TableHead>
-                  <TableHead className="min-w-[200px]">משימה</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleColumnSort('category')}
+                  >
+                    <div className="flex items-center gap-1">
+                      קטגוריה
+                      {sortConfig?.field === 'category' ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="min-w-[200px] cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleColumnSort('name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      משימה
+                      {sortConfig?.field === 'name' ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </div>
+                  </TableHead>
                   <TableHead className="min-w-[250px]">תיאור</TableHead>
-                  <TableHead>סטטוס</TableHead>
-                  <TableHead>עדיפות</TableHead>
-                  <TableHead>חובה</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleColumnSort('status')}
+                  >
+                    <div className="flex items-center gap-1">
+                      סטטוס
+                      {sortConfig?.field === 'status' ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleColumnSort('priority')}
+                  >
+                    <div className="flex items-center gap-1">
+                      עדיפות
+                      {sortConfig?.field === 'priority' ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => handleColumnSort('is_required')}
+                  >
+                    <div className="flex items-center gap-1">
+                      חובה
+                      {sortConfig?.field === 'is_required' ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ArrowUp className="h-3 w-3" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </div>
+                  </TableHead>
                   <TableHead className="min-w-[200px]">הערות</TableHead>
                   {customColumns.map((col) => (
                     <TableHead key={col} className="min-w-[150px]">{col}</TableHead>
@@ -700,7 +1049,7 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map((task) => {
+                {getSortedTasks().map((task) => {
                   const category = categories.find(c => c.id === task.category_id);
                   const projectTask = projectTasks?.find(pt => pt.task_id === task.id);
                   const isEditing = editingCell?.taskId === task.id;
