@@ -65,6 +65,53 @@ export type Database = {
         }
         Relationships: []
       }
+      project_backups: {
+        Row: {
+          backup_data: Json
+          backup_name: string
+          backup_size: number
+          backup_type: string | null
+          created_at: string | null
+          created_by: string
+          files_metadata: Json | null
+          id: string
+          notes: string | null
+          project_id: string
+        }
+        Insert: {
+          backup_data: Json
+          backup_name: string
+          backup_size: number
+          backup_type?: string | null
+          created_at?: string | null
+          created_by: string
+          files_metadata?: Json | null
+          id?: string
+          notes?: string | null
+          project_id: string
+        }
+        Update: {
+          backup_data?: Json
+          backup_name?: string
+          backup_size?: number
+          backup_type?: string | null
+          created_at?: string | null
+          created_by?: string
+          files_metadata?: Json | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_backups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_tasks: {
         Row: {
           actual_hours: number | null

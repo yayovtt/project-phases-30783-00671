@@ -24,30 +24,56 @@ export const ExportImport = ({ projectId }: ExportImportProps) => {
         .eq('id', projectId)
         .single();
 
-      // Get project tasks
+      // Get project tasks with all relations
       const { data: projectTasks } = await supabase
         .from('project_tasks')
-        .select('*')
+        .select('*, tasks(*)')
         .eq('project_id', projectId);
 
+      // Get attachments
+      const { data: attachments } = await supabase
+        .from('task_attachments')
+        .select('*')
+        .in('project_task_id', projectTasks?.map(pt => pt.id) || []);
+
+      // Get reminders
+      const { data: reminders } = await supabase
+        .from('task_reminders')
+        .select('*')
+        .in('project_task_id', projectTasks?.map(pt => pt.id) || []);
+
       const exportData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
         project,
         tasks: projectTasks,
-        exportDate: new Date().toISOString(),
+        attachments: attachments?.map(att => ({
+          ...att,
+          file_url: null, // Don't export actual file URLs for security
+        })),
+        reminders,
+        metadata: {
+          total_tasks: projectTasks?.length || 0,
+          completed_tasks: projectTasks?.filter(t => t.completed).length || 0,
+          total_attachments: attachments?.length || 0,
+          total_reminders: reminders?.length || 0,
+        }
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `project-${projectId}-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `project-${project?.client_name || projectId}-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
+      URL.revokeObjectURL(url);
 
       toast({
         title: 'יוצא בהצלחה',
-        description: 'הקובץ הורד למחשב',
+        description: `${projectTasks?.length || 0} משימות, ${attachments?.length || 0} קבצים, ${reminders?.length || 0} תזכורות`,
       });
     } catch (error) {
+      console.error('Export error:', error);
       toast({
         title: 'שגיאה',
         description: 'לא ניתן לייצא את הנתונים',
@@ -63,28 +89,31 @@ export const ExportImport = ({ projectId }: ExportImportProps) => {
     try {
       const { data: projectTasks } = await supabase
         .from('project_tasks')
-        .select('*, tasks(*), categories:tasks(category:categories(*))')
+        .select('*, tasks(name, description, priority, category_id, categories(display_name))')
         .eq('project_id', projectId);
 
-      let csv = 'שם משימה,קטגוריה,סטטוס,הערות,תאריך השלמה\n';
+      let csv = 'שם משימה,תיאור,קטגוריה,עדיפות,סטטוס,הערות,תאריך התחלה,תאריך השלמה,שעות בפועל,שעות מוערכות\n';
       
       projectTasks?.forEach((pt: any) => {
         const task = pt.tasks;
-        csv += `"${task?.name || ''}","${task?.category?.display_name || ''}","${pt.status}","${pt.notes || ''}","${pt.completed_at || ''}"\n`;
+        const category = task?.categories?.display_name || '';
+        csv += `"${task?.name || ''}","${task?.description || ''}","${category}","${task?.priority || ''}","${pt.status}","${pt.notes || ''}","${pt.started_at || ''}","${pt.completed_at || ''}","${pt.actual_hours || 0}","${task?.estimated_hours || 0}"\n`;
       });
 
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `project-${projectId}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `project-tasks-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
+      URL.revokeObjectURL(url);
 
       toast({
         title: 'יוצא בהצלחה',
-        description: 'קובץ CSV הורד למחשב',
+        description: `${projectTasks?.length || 0} משימות יוצאו לקובץ CSV`,
       });
     } catch (error) {
+      console.error('CSV export error:', error);
       toast({
         title: 'שגיאה',
         description: 'לא ניתן לייצא את הנתונים',

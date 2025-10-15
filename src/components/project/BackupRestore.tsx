@@ -1,11 +1,24 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Database, RotateCcw, Clock, Save, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Download, Upload, AlertCircle, Clock, Trash2, Search, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface BackupRestoreProps {
   projectId: string;
@@ -13,7 +26,11 @@ interface BackupRestoreProps {
 
 interface Backup {
   id: string;
+  backup_name: string;
   created_at: string;
+  backup_size: number;
+  backup_type: 'manual' | 'auto' | 'scheduled';
+  notes?: string;
   tasks_count: number;
   completed_count: number;
 }
@@ -21,62 +38,108 @@ interface Backup {
 export const BackupRestore = ({ projectId }: BackupRestoreProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [backupName, setBackupName] = useState('');
+  const [backupNotes, setBackupNotes] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedBackupId, setSelectedBackupId] = useState<string | null>(null);
 
-  // Simulated backups - in a real app, these would be stored in the database
-  const { data: backups } = useQuery({
-    queryKey: ['backups', projectId],
+  const { data: backups = [], isLoading } = useQuery({
+    queryKey: ['project-backups', projectId],
     queryFn: async () => {
-      // This is a simplified version - you'd want to store backups in a dedicated table
-      const { data: projectTasks } = await supabase
-        .from('project_tasks')
+      const { data, error } = await supabase
+        .from('project_backups')
         .select('*')
-        .eq('project_id', projectId);
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
-      const backup: Backup = {
-        id: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        tasks_count: projectTasks?.length || 0,
-        completed_count: projectTasks?.filter(t => t.completed).length || 0,
-      };
+      if (error) throw error;
 
-      return [backup];
+      return (data || []).map(backup => {
+        const backupData = backup.backup_data as any;
+        return {
+          id: backup.id,
+          backup_name: backup.backup_name,
+          created_at: backup.created_at,
+          backup_size: backup.backup_size,
+          backup_type: backup.backup_type as 'manual' | 'auto' | 'scheduled',
+          notes: backup.notes,
+          tasks_count: backupData?.tasks?.length || 0,
+          completed_count: backupData?.tasks?.filter((t: any) => t.completed).length || 0,
+        };
+      });
     },
   });
 
   const handleCreateBackup = async () => {
+    if (!user) return;
+    
     setIsCreatingBackup(true);
     try {
+      // Fetch all project data
+      const { data: project } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
       const { data: projectTasks } = await supabase
         .from('project_tasks')
-        .select('*')
+        .select('*, tasks(*)')
         .eq('project_id', projectId);
 
-      const backup = {
-        project_id: projectId,
-        backup_data: projectTasks,
+      const { data: attachments } = await supabase
+        .from('task_attachments')
+        .select('*')
+        .in('project_task_id', projectTasks?.map(pt => pt.id) || []);
+
+      const { data: reminders } = await supabase
+        .from('task_reminders')
+        .select('*')
+        .in('project_task_id', projectTasks?.map(pt => pt.id) || []);
+
+      const backupData = {
+        project,
+        tasks: projectTasks,
+        attachments,
+        reminders,
         created_at: new Date().toISOString(),
       };
 
-      // Save to localStorage as a simple backup solution
-      const existingBackups = JSON.parse(localStorage.getItem(`backups-${projectId}`) || '[]');
-      existingBackups.push(backup);
-      
-      // Keep only last 10 backups
-      if (existingBackups.length > 10) {
-        existingBackups.shift();
-      }
-      
-      localStorage.setItem(`backups-${projectId}`, JSON.stringify(existingBackups));
+      const backupJson = JSON.stringify(backupData);
+      const backupSize = new Blob([backupJson]).size;
+
+      const name = backupName.trim() || `גיבוי ${new Date().toLocaleDateString('he-IL')} ${new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
+
+      const { error } = await supabase
+        .from('project_backups')
+        .insert({
+          project_id: projectId,
+          backup_name: name,
+          backup_data: backupData,
+          files_metadata: { attachments_count: attachments?.length || 0 },
+          created_by: user.id,
+          backup_size: backupSize,
+          backup_type: 'manual',
+          notes: backupNotes.trim() || null,
+        });
+
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ['project-backups'] });
+
+      setBackupName('');
+      setBackupNotes('');
 
       toast({
         title: 'גיבוי נוצר בהצלחה',
-        description: `${projectTasks?.length || 0} משימות נשמרו`,
+        description: `${projectTasks?.length || 0} משימות, ${attachments?.length || 0} קבצים, ${reminders?.length || 0} תזכורות נשמרו`,
       });
-
-      queryClient.invalidateQueries({ queryKey: ['backups', projectId] });
     } catch (error) {
+      console.error('Backup error:', error);
       toast({
         title: 'שגיאה',
         description: 'לא ניתן ליצור גיבוי',
@@ -88,46 +151,72 @@ export const BackupRestore = ({ projectId }: BackupRestoreProps) => {
   };
 
   const handleRestore = async (backupId: string) => {
-    if (!confirm('האם אתה בטוח שברצונך לשחזר גיבוי זה? פעולה זו תדרוס את הנתונים הנוכחיים.')) {
-      return;
-    }
+    if (!user) return;
 
     setIsRestoring(true);
     try {
-      const existingBackups = JSON.parse(localStorage.getItem(`backups-${projectId}`) || '[]');
-      const backup = existingBackups.find((b: any) => b.created_at === backupId);
+      const { data: backup } = await supabase
+        .from('project_backups')
+        .select('*')
+        .eq('id', backupId)
+        .single();
 
-      if (backup && backup.backup_data) {
-        // Delete current tasks
+      if (!backup) throw new Error('גיבוי לא נמצא');
+
+      const backupData = backup.backup_data as any;
+
+      // Delete current data
+      const { data: currentTasks } = await supabase
+        .from('project_tasks')
+        .select('id')
+        .eq('project_id', projectId);
+
+      if (currentTasks && currentTasks.length > 0) {
         await supabase
           .from('project_tasks')
           .delete()
-          .eq('project_id', projectId);
+          .in('id', currentTasks.map(t => t.id));
+      }
 
-        // Restore from backup
-        for (const task of backup.backup_data) {
-          await supabase.from('project_tasks').insert({
+      // Restore tasks
+      if (backupData.tasks && backupData.tasks.length > 0) {
+        const { error: tasksError } = await supabase
+          .from('project_tasks')
+          .insert(backupData.tasks.map((task: any) => ({
+            id: task.id,
             project_id: projectId,
             task_id: task.task_id,
             completed: task.completed,
             status: task.status,
             notes: task.notes,
+            started_at: task.started_at,
             completed_at: task.completed_at,
-            completed_by: task.completed_by,
-          });
-        }
+            due_date_override: task.due_date_override,
+            actual_hours: task.actual_hours,
+          })));
 
-        toast({
-          title: 'שוחזר בהצלחה',
-          description: `${backup.backup_data.length} משימות שוחזרו`,
-        });
-
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+        if (tasksError) throw tasksError;
       }
+
+      // Restore reminders
+      if (backupData.reminders && backupData.reminders.length > 0) {
+        await supabase
+          .from('task_reminders')
+          .insert(backupData.reminders);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      await queryClient.invalidateQueries({ queryKey: ['task-reminders'] });
+
+      toast({
+        title: 'שוחזר בהצלחה',
+        description: `${backupData.tasks?.length || 0} משימות ו-${backupData.reminders?.length || 0} תזכורות שוחזרו`,
+      });
     } catch (error) {
+      console.error('Restore error:', error);
       toast({
         title: 'שגיאה',
-        description: 'לא ניתן לשחזר את הגיבוי',
+        description: 'לא ניתן לשחזר גיבוי',
         variant: 'destructive',
       });
     } finally {
@@ -135,35 +224,85 @@ export const BackupRestore = ({ projectId }: BackupRestoreProps) => {
     }
   };
 
-  const getLocalBackups = () => {
-    try {
-      return JSON.parse(localStorage.getItem(`backups-${projectId}`) || '[]');
-    } catch {
-      return [];
-    }
+  const deleteMutation = useMutation({
+    mutationFn: async (backupId: string) => {
+      const { error } = await supabase
+        .from('project_backups')
+        .delete()
+        .eq('id', backupId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-backups'] });
+      toast({
+        title: 'גיבוי נמחק',
+        description: 'הגיבוי נמחק בהצלחה',
+      });
+      setDeleteDialogOpen(false);
+      setSelectedBackupId(null);
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast({
+        title: 'שגיאה',
+        description: 'לא ניתן למחוק את הגיבוי',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const filteredBackups = backups.filter(backup =>
+    backup.backup_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    backup.notes?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
-  const localBackups = getLocalBackups();
+  if (isLoading) {
+    return <div>טוען...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Save className="h-5 w-5" />
+            <Download className="h-5 w-5" />
             יצירת גיבוי חדש
           </CardTitle>
           <CardDescription>
-            שמור את המצב הנוכחי של הפרויקט
+            שמור את כל נתוני הפרויקט במסד הנתונים לשחזור עתידי
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">שם הגיבוי (אופציונלי)</label>
+            <Input
+              placeholder="לדוגמה: לפני שינויים גדולים"
+              value={backupName}
+              onChange={(e) => setBackupName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-2 block">הערות (אופציונלי)</label>
+            <Textarea
+              placeholder="הערות על הגיבוי..."
+              value={backupNotes}
+              onChange={(e) => setBackupNotes(e.target.value)}
+              rows={3}
+            />
+          </div>
           <Button
             onClick={handleCreateBackup}
             disabled={isCreatingBackup}
             className="w-full"
           >
-            <Database className="ml-2 h-4 w-4" />
+            <Download className="ml-2 h-4 w-4" />
             {isCreatingBackup ? 'יוצר גיבוי...' : 'צור גיבוי חדש'}
           </Button>
         </CardContent>
@@ -172,59 +311,81 @@ export const BackupRestore = ({ projectId }: BackupRestoreProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+            <Upload className="h-5 w-5" />
             גיבויים קיימים
           </CardTitle>
           <CardDescription>
-            {localBackups.length} גיבויים זמינים
+            שחזר את הפרויקט לנקודת זמן קודמת
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {localBackups.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>אין גיבויים זמינים</p>
-              <p className="text-sm mt-1">צור גיבוי ראשון כדי להתחיל</p>
+          {backups.length > 0 && (
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="חיפוש גיבויים..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
             </div>
+          )}
+
+          {filteredBackups.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              {backups.length === 0 ? 'אין גיבויים זמינים' : 'לא נמצאו גיבויים מתאימים'}
+            </p>
           ) : (
             <div className="space-y-3">
-              {localBackups.reverse().map((backup: any, index: number) => (
+              {filteredBackups.map((backup) => (
                 <div
-                  key={backup.created_at}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  key={backup.id}
+                  className="flex items-start justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">
-                        גיבוי #{localBackups.length - index}
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="mt-1">
+                      {backup.backup_type === 'auto' && <Clock className="h-4 w-4 text-muted-foreground" />}
+                      {backup.backup_type === 'manual' && <Download className="h-4 w-4 text-muted-foreground" />}
+                      {backup.backup_type === 'scheduled' && <Tag className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{backup.backup_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(backup.created_at).toLocaleDateString('he-IL')} • {new Date(backup.created_at).toLocaleTimeString('he-IL')}
                       </p>
-                      {index === 0 && (
-                        <Badge variant="secondary">אחרון</Badge>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {backup.tasks_count} משימות • {backup.completed_count} הושלמו • {formatFileSize(backup.backup_size)}
+                      </p>
+                      {backup.notes && (
+                        <p className="text-xs text-muted-foreground mt-2 italic">
+                          {backup.notes}
+                        </p>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(backup.created_at).toLocaleString('he-IL', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </p>
-                    <div className="flex gap-3 text-xs text-muted-foreground">
-                      <span>{backup.backup_data?.length || 0} משימות</span>
-                      <span>•</span>
-                      <span>
-                        {backup.backup_data?.filter((t: any) => t.completed).length || 0} הושלמו
-                      </span>
-                    </div>
                   </div>
-                  <Button
-                    onClick={() => handleRestore(backup.created_at)}
-                    disabled={isRestoring}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <RotateCcw className="ml-2 h-4 w-4" />
-                    שחזר
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleRestore(backup.id)}
+                      disabled={isRestoring}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Upload className="ml-2 h-4 w-4" />
+                      שחזר
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setSelectedBackupId(backup.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -240,12 +401,32 @@ export const BackupRestore = ({ projectId }: BackupRestoreProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>• הגיבויים נשמרים במחשב המקומי שלך</p>
-          <p>• שמור עד 10 גיבויים אחרונים</p>
-          <p>• שחזור גיבוי ידרוס את כל הנתונים הנוכחיים</p>
+          <p>• הגיבויים נשמרים במסד הנתונים</p>
+          <p>• גיבוי אוטומטי נוצר לפני כל שחזור</p>
+          <p>• שחזור גיבוי ידרוס את כל המשימות והתזכורות הנוכחיות</p>
           <p>• מומלץ ליצור גיבוי לפני שינויים משמעותיים</p>
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>האם למחוק גיבוי זה?</AlertDialogTitle>
+            <AlertDialogDescription>
+              פעולה זו אינה הפיכה. הגיבוי יימחק לצמיתות.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedBackupId && deleteMutation.mutate(selectedBackupId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              מחק
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
