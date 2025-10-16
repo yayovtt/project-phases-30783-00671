@@ -156,36 +156,6 @@ export type Database = {
           },
         ]
       }
-      project_folders: {
-        Row: {
-          color: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          name: string
-          order_index: number
-          updated_at: string | null
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          name: string
-          order_index?: number
-          updated_at?: string | null
-        }
-        Update: {
-          color?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          name?: string
-          order_index?: number
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       project_tasks: {
         Row: {
           actual_hours: number | null
@@ -271,7 +241,6 @@ export type Database = {
           client_name: string
           created_at: string | null
           created_by: string | null
-          folder_id: string | null
           gush: string | null
           id: string
           parcel: string | null
@@ -284,7 +253,6 @@ export type Database = {
           client_name: string
           created_at?: string | null
           created_by?: string | null
-          folder_id?: string | null
           gush?: string | null
           id?: string
           parcel?: string | null
@@ -297,7 +265,6 @@ export type Database = {
           client_name?: string
           created_at?: string | null
           created_by?: string | null
-          folder_id?: string | null
           gush?: string | null
           id?: string
           parcel?: string | null
@@ -305,15 +272,7 @@ export type Database = {
           priority?: number | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_folder_id_fkey"
-            columns: ["folder_id"]
-            isOneToOne: false
-            referencedRelation: "project_folders"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       task_attachments: {
         Row: {
