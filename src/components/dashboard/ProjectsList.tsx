@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, Calendar, Plus, FolderOpen, Folder } from 'lucide-react';
+import { Building2, MapPin, Calendar, Plus, FolderOpen, Folder, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -89,6 +89,23 @@ export const ProjectsList = () => {
     },
   });
 
+  const deleteProject = useMutation({
+    mutationFn: async (projectId: string) => {
+      const { error } = await (supabase as any)
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast({
+        title: 'הפרויקט נמחק בהצלחה',
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -132,34 +149,48 @@ export const ProjectsList = () => {
             </div>
             <span className="group-hover:gradient-text transition-all">{project.client_name}</span>
           </CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                <FolderOpen className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>העבר לתיקייה</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => moveToFolder.mutate({ projectId: project.id, folderId: null })}>
-                ללא תיקייה
-              </DropdownMenuItem>
-              {folders?.map((folder) => (
-                <DropdownMenuItem
-                  key={folder.id}
-                  onClick={() => moveToFolder.mutate({ projectId: project.id, folderId: folder.id })}
-                >
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: folder.color || '#6B7280' }}
-                    />
-                    {folder.name}
-                  </div>
+          <div className="flex gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                  <FolderOpen className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>העבר לתיקייה</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => moveToFolder.mutate({ projectId: project.id, folderId: null })}>
+                  ללא תיקייה
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {folders?.map((folder) => (
+                  <DropdownMenuItem
+                    key={folder.id}
+                    onClick={() => moveToFolder.mutate({ projectId: project.id, folderId: folder.id })}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: folder.color || '#6B7280' }}
+                      />
+                      {folder.name}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm('האם אתה בטוח שברצונך למחוק את הפרויקט?')) {
+                  deleteProject.mutate(project.id);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
         </div>
         {project.address && (
           <CardDescription className="flex items-center gap-1 mt-2">

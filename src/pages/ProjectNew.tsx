@@ -57,22 +57,30 @@ const ProjectNew = () => {
 
       if (projectError) throw projectError;
 
-      // If user imported tasks, create them and link to this project
-      if (taskTemplate.importedTasks.length > 0) {
-        console.log('[ProjectNew] Creating tasks from imported list...', taskTemplate.importedTasks);
+      // If user imported tasks from a custom list, create a new category and tasks
+      if (taskTemplate.templateType === 'custom' && taskTemplate.importedTasks.length > 0) {
+        console.log('[ProjectNew] Creating custom category and tasks from imported list...', taskTemplate.importedTasks);
 
-        // Try to get a default category to avoid NULL constraints if any
-        const { data: defaultCat } = await supabase
+        // Create a new category for this custom template
+        const categoryName = taskTemplate.customTemplateName || `קטגוריה מותאמת - ${formData.client_name}`;
+        
+        const { data: newCategory, error: categoryError } = await supabase
           .from('categories')
+          .insert({
+            name: categoryName.toLowerCase().replace(/\s+/g, '_'),
+            display_name: categoryName,
+            color: '#3B82F6',
+            order_index: 999,
+          })
           .select('id')
-          .order('order_index', { ascending: true })
-          .limit(1);
-        const defaultCategoryId = defaultCat?.[0]?.id ?? null;
+          .single();
+
+        if (categoryError) throw categoryError;
 
         const tasksToInsert = taskTemplate.importedTasks.map((task, index) => ({
           name: task.name || task.title || `משימה ${index + 1}`,
           description: task.description || task.desc || null,
-          category_id: defaultCategoryId,
+          category_id: newCategory.id,
           order_index: index + 1,
           is_required: false,
         }));
@@ -91,7 +99,7 @@ const ProjectNew = () => {
 
         const { error: linkError } = await supabase.from('project_tasks').insert(projectTasks);
         if (linkError) throw linkError;
-        console.log('[ProjectNew] Linked', projectTasks.length, 'tasks to project');
+        console.log('[ProjectNew] Created category and linked', projectTasks.length, 'tasks to project');
       }
 
       toast({

@@ -167,9 +167,21 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
     e.preventDefault();
   };
 
-  const handleDrop = (status: string) => {
-    if (draggedTask) {
-      onStatusChange(draggedTask.id, status);
+  const handleDrop = async (status: string) => {
+    if (draggedTask && draggedTask.status !== status) {
+      try {
+        await onStatusChange(draggedTask.id, status);
+        toast({
+          title: 'המשימה עודכנה',
+          description: `המשימה הועברה בהצלחה`,
+        });
+      } catch (error) {
+        toast({
+          title: 'שגיאה',
+          description: 'לא ניתן להעביר את המשימה',
+          variant: 'destructive',
+        });
+      }
       setDraggedTask(null);
     }
   };

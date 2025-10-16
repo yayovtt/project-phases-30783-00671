@@ -166,14 +166,28 @@ export const FolderManagement = () => {
               style={{ borderColor: folder.color || '#6B7280' }}
             >
               <span className="text-sm font-medium">{folder.name}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 w-5 p-0"
-                onClick={() => deleteFolder.mutate(folder.id)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0"
+                  onClick={() => {
+                    setNewFolderName(folder.name);
+                    setNewFolderColor(folder.color || '#6B7280');
+                    setIsCreateOpen(true);
+                  }}
+                >
+                  <Edit className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0"
+                  onClick={() => deleteFolder.mutate(folder.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>

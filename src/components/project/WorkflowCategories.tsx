@@ -365,6 +365,13 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
             אנליטיקס
           </TabsTrigger>
           <TabsTrigger 
+            value="time-tracking" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
+            <Clock className="h-4 w-4 ml-1" />
+            מעקב זמנים
+          </TabsTrigger>
+          <TabsTrigger 
             value="timeline" 
             className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
           >
@@ -808,7 +815,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           />
         </TabsContent>
 
-        <TabsContent value="project-timeline">
+        <TabsContent value="time-tracking">
           {projectData && categories && tasks && projectTasks && (
             <ProjectTimeline 
               project={projectData}
