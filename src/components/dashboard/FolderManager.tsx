@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { FolderPlus, FolderOpen, Pencil, Trash2 } from 'lucide-react';
+import { FolderPlus, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -29,7 +29,7 @@ export const FolderManager = () => {
   const [selectedColor, setSelectedColor] = useState(FOLDER_COLORS[0]);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
 
-  const { data: folders } = useQuery({
+  const { data: folders, isLoading: foldersLoading } = useQuery({
     queryKey: ['folders'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -59,6 +59,13 @@ export const FolderManager = () => {
       setOpen(false);
       toast({ title: 'התיקייה נוצרה בהצלחה' });
     },
+    onError: (error) => {
+      toast({ 
+        title: 'שגיאה ביצירת תיקייה', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    },
   });
 
   const updateFolder = useMutation({
@@ -75,19 +82,15 @@ export const FolderManager = () => {
       setOpen(false);
       toast({ title: 'התיקייה עודכנה בהצלחה' });
     },
+    onError: (error) => {
+      toast({ 
+        title: 'שגיאה בעדכון תיקייה', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    },
   });
 
-  const deleteFolder = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('project_folders').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['folders'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({ title: 'התיקייה נמחקה בהצלחה' });
-    },
-  });
 
   const handleSubmit = () => {
     if (!newFolderName.trim()) return;
@@ -114,14 +117,17 @@ export const FolderManager = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogTrigger asChild>
-          <Button variant="outline" className="hover-lift">
-            <FolderPlus className="ml-2 h-4 w-4" />
-            תיקייה חדשה
-          </Button>
-        </DialogTrigger>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogTrigger asChild>
+        <Button 
+          variant="outline" 
+          className="hover-lift"
+          disabled={createFolder.isPending || updateFolder.isPending}
+        >
+          <FolderPlus className="ml-2 h-4 w-4" />
+          תיקייה חדשה
+        </Button>
+      </DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingFolder ? 'עריכת תיקייה' : 'תיקייה חדשה'}</DialogTitle>
@@ -151,44 +157,18 @@ export const FolderManager = () => {
                 ))}
               </div>
             </div>
-            <Button onClick={handleSubmit} className="w-full">
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full"
+              disabled={createFolder.isPending || updateFolder.isPending}
+            >
+              {(createFolder.isPending || updateFolder.isPending) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {editingFolder ? 'עדכן' : 'צור'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {folders && folders.length > 0 && (
-        <div className="grid gap-2">
-          {folders.map((folder) => (
-            <div
-              key={folder.id}
-              className="flex items-center justify-between p-3 bg-card rounded-lg border hover:shadow-md transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <FolderOpen className="h-5 w-5" style={{ color: folder.color }} />
-                <span className="font-medium">{folder.name}</span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEdit(folder)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteFolder.mutate(folder.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
   );
 };
