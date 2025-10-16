@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map, FileSpreadsheet } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map, FileSpreadsheet, Edit3, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -26,6 +26,7 @@ import { useReminders } from '@/hooks/useReminders';
 import { TaskScheduler } from './TaskScheduler';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TaskTimeAnalytics } from './TaskTimeAnalytics';
+import { ProjectTimeline } from './ProjectTimeline';
 import { GanttView } from './views/GanttView';
 import { ProjectDashboard } from './ProjectDashboard';
 import { KanbanBoard } from './KanbanBoard';
@@ -72,6 +73,22 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useIsAdmin();
+
+  // Fetch project data for timeline
+  const { data: projectData } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId,
+  });
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [taskManagementOpen, setTaskManagementOpen] = useState(false);
@@ -146,6 +163,9 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
   const toggleTaskMutation = useMutation({
     mutationFn: async ({ taskId, completed }: { taskId: string; completed: boolean }) => {
+      const now = new Date().toISOString();
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { error } = await supabase
         .from('project_tasks')
         .upsert({
@@ -153,7 +173,9 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           task_id: taskId,
           completed,
           status: completed ? 'completed' : 'pending',
-          completed_at: completed ? new Date().toISOString() : null,
+          completed_at: completed ? now : null,
+          completed_by: completed ? user?.id : null,
+          started_at: completed ? now : undefined
         });
 
       if (error) throw error;
@@ -540,6 +562,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                                   projectTask?.notes || null
                                 )
                               }
+                              title="הערות"
                             >
                               <MessageSquare className="h-4 w-4 ml-1" />
                               {projectTask?.notes && (
@@ -551,6 +574,40 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                                 </Badge>
                               )}
                             </Button>
+                            {isAdmin && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                                  onClick={() => {
+                                    // TODO: Add edit task functionality
+                                    toast({
+                                      title: 'בקרוב',
+                                      description: 'עריכת משימה תהיה זמינה בקרוב',
+                                    });
+                                  }}
+                                  title="ערוך משימה"
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                  onClick={() => {
+                                    // TODO: Add delete task functionality
+                                    toast({
+                                      title: 'בקרוב',
+                                      description: 'מחיקת משימה תהיה זמינה בקרוב',
+                                    });
+                                  }}
+                                  title="מחק משימה"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       );
@@ -749,6 +806,17 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
               toggleTaskMutation.mutate({ taskId, completed })
             }
           />
+        </TabsContent>
+
+        <TabsContent value="project-timeline">
+          {projectData && categories && tasks && projectTasks && (
+            <ProjectTimeline 
+              project={projectData}
+              categories={categories}
+              allTasks={tasks}
+              projectTasks={projectTasks}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="calendar">

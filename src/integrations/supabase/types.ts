@@ -22,6 +22,8 @@ export type Database = {
           id: string
           name: string
           order_index: number
+          started_at: string | null
+          target_days: number | null
         }
         Insert: {
           color?: string | null
@@ -30,6 +32,8 @@ export type Database = {
           id?: string
           name: string
           order_index: number
+          started_at?: string | null
+          target_days?: number | null
         }
         Update: {
           color?: string | null
@@ -38,6 +42,8 @@ export type Database = {
           id?: string
           name?: string
           order_index?: number
+          started_at?: string | null
+          target_days?: number | null
         }
         Relationships: []
       }
@@ -156,6 +162,36 @@ export type Database = {
           },
         ]
       }
+      project_folders: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          order_index: number
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          order_index?: number
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       project_tasks: {
         Row: {
           actual_hours: number | null
@@ -170,6 +206,7 @@ export type Database = {
           notes: string | null
           progress: number | null
           project_id: string
+          start_date: string | null
           started_at: string | null
           status: string | null
           task_id: string
@@ -188,6 +225,7 @@ export type Database = {
           notes?: string | null
           progress?: number | null
           project_id: string
+          start_date?: string | null
           started_at?: string | null
           status?: string | null
           task_id: string
@@ -206,6 +244,7 @@ export type Database = {
           notes?: string | null
           progress?: number | null
           project_id?: string
+          start_date?: string | null
           started_at?: string | null
           status?: string | null
           task_id?: string
@@ -237,42 +276,62 @@ export type Database = {
       }
       projects: {
         Row: {
+          actual_completion_date: string | null
           address: string | null
           client_name: string
           created_at: string | null
           created_by: string | null
+          folder_id: string | null
           gush: string | null
           id: string
           parcel: string | null
           plot: string | null
           priority: number | null
+          started_at: string | null
+          target_completion_days: number | null
           updated_at: string | null
         }
         Insert: {
+          actual_completion_date?: string | null
           address?: string | null
           client_name: string
           created_at?: string | null
           created_by?: string | null
+          folder_id?: string | null
           gush?: string | null
           id?: string
           parcel?: string | null
           plot?: string | null
           priority?: number | null
+          started_at?: string | null
+          target_completion_days?: number | null
           updated_at?: string | null
         }
         Update: {
+          actual_completion_date?: string | null
           address?: string | null
           client_name?: string
           created_at?: string | null
           created_by?: string | null
+          folder_id?: string | null
           gush?: string | null
           id?: string
           parcel?: string | null
           plot?: string | null
           priority?: number | null
+          started_at?: string | null
+          target_completion_days?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_attachments: {
         Row: {
