@@ -1,19 +1,16 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, Calendar, Plus, FolderOpen, Settings, Pencil, Trash2 } from 'lucide-react';
+import { Building2, MapPin, Calendar, Plus, FolderOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CardSkeleton } from '@/components/ui/loading-skeleton';
-import { FolderManager } from './FolderManager';
+import { CreateFolderDialog } from './folders/CreateFolderDialog';
+import { ManageFoldersDialog } from './folders/ManageFoldersDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/hooks/useAuth';
 
 interface Project {
   id: string;
@@ -34,19 +31,10 @@ interface Folder {
   order_index: number;
 }
 
-const FOLDER_COLORS = [
-  '#6B7280', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'
-];
-
 export const ProjectsList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [manageFoldersOpen, setManageFoldersOpen] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
-  const [editFolderName, setEditFolderName] = useState('');
-  const [editFolderColor, setEditFolderColor] = useState(FOLDER_COLORS[0]);
 
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
@@ -61,7 +49,7 @@ export const ProjectsList = () => {
     },
   });
 
-  const { data: folders, isLoading: foldersLoading } = useQuery({
+  const { data: folders } = useQuery({
     queryKey: ['folders'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -70,49 +58,6 @@ export const ProjectsList = () => {
         .order('order_index', { ascending: true });
       if (error) throw error;
       return data as Folder[];
-    },
-  });
-
-  const updateFolder = useMutation({
-    mutationFn: async ({ id, name, color }: { id: string; name: string; color: string }) => {
-      const { error } = await supabase
-        .from('project_folders')
-        .update({ name, color })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['folders'] });
-      setEditingFolder(null);
-      setEditFolderName('');
-      setEditFolderColor(FOLDER_COLORS[0]);
-      toast({ title: 'התיקייה עודכנה בהצלחה' });
-    },
-    onError: (error) => {
-      toast({ 
-        title: 'שגיאה בעדכון תיקייה', 
-        description: error.message,
-        variant: 'destructive'
-      });
-    },
-  });
-
-  const deleteFolder = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('project_folders').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['folders'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({ title: 'התיקייה נמחקה בהצלחה' });
-    },
-    onError: (error) => {
-      toast({ 
-        title: 'שגיאה במחיקת תיקייה', 
-        description: error.message,
-        variant: 'destructive'
-      });
     },
   });
 
@@ -144,27 +89,6 @@ export const ProjectsList = () => {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-  };
-
-  const handleEditFolder = (folder: Folder) => {
-    setEditingFolder(folder);
-    setEditFolderName(folder.name);
-    setEditFolderColor(folder.color);
-  };
-
-  const handleUpdateFolder = () => {
-    if (!editingFolder || !editFolderName.trim()) return;
-    updateFolder.mutate({ 
-      id: editingFolder.id, 
-      name: editFolderName, 
-      color: editFolderColor 
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingFolder(null);
-    setEditFolderName('');
-    setEditFolderColor(FOLDER_COLORS[0]);
   };
 
   const projectsWithoutFolder = projects?.filter(p => !p.folder_id) || [];
@@ -249,83 +173,8 @@ export const ProjectsList = () => {
           <p className="text-sm text-muted-foreground mt-1">{projects.length} פרויקטים פעילים</p>
         </div>
         <div className="flex gap-2">
-          <FolderManager />
-          {folders && folders.length > 0 && (
-            <Dialog open={manageFoldersOpen} onOpenChange={setManageFoldersOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="hover-lift">
-                  <Settings className="ml-2 h-4 w-4" />
-                  נהל תיקיות
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>ניהול תיקיות</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-2 max-h-[60vh] overflow-y-auto">
-                  {folders.map((folder) => (
-                    <div
-                      key={folder.id}
-                      className="flex items-center justify-between p-3 bg-card rounded-lg border hover:shadow-md transition-all"
-                    >
-                      {editingFolder?.id === folder.id ? (
-                        <div className="flex-1 flex items-center gap-3">
-                          <Input
-                            value={editFolderName}
-                            onChange={(e) => setEditFolderName(e.target.value)}
-                            className="flex-1"
-                            placeholder="שם התיקייה"
-                          />
-                          <div className="flex gap-1">
-                            {FOLDER_COLORS.map((color) => (
-                              <button
-                                key={color}
-                                onClick={() => setEditFolderColor(color)}
-                                className={`w-6 h-6 rounded-full transition-transform ${
-                                  editFolderColor === color ? 'scale-125 ring-2 ring-primary' : ''
-                                }`}
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
-                          </div>
-                          <Button size="sm" onClick={handleUpdateFolder}>
-                            שמור
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
-                            ביטול
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <FolderOpen className="h-5 w-5" style={{ color: folder.color }} />
-                            <span className="font-medium">{folder.name}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditFolder(folder)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteFolder.mutate(folder.id)}
-                              disabled={deleteFolder.isPending}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+          <CreateFolderDialog />
+          <ManageFoldersDialog />
           <Button onClick={() => navigate('/project/new')} variant="gradient" className="shadow-lg">
             <Plus className="ml-2 h-4 w-4" />
             פרויקט חדש
