@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowRight, Building2, MapPin } from 'lucide-react';
 import { WorkflowCategories } from '@/components/project/WorkflowCategories';
 import { NotificationCenter } from '@/components/project/NotificationCenter';
+import { ThemeSelector } from '@/components/project/ThemeSelector';
 
 interface Project {
   id: string;
@@ -81,7 +82,10 @@ const ProjectView = () => {
                 </p>
               )}
             </div>
-            <NotificationCenter />
+            <div className="flex items-center gap-2">
+              <ThemeSelector />
+              <NotificationCenter />
+            </div>
           </div>
         </div>
       </header>

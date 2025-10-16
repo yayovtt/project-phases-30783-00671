@@ -302,29 +302,69 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
       />
 
       <Tabs defaultValue="list" className="w-full" dir="rtl">
-        <TabsList className="hidden md:inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full flex-wrap">
-          <TabsTrigger value="dashboard" className="flex-1">
+        <TabsList className="hidden md:inline-flex h-auto items-center justify-center rounded-xl bg-gradient-to-r from-card to-card/80 backdrop-blur-sm shadow-lg border-2 border-primary/10 p-2 text-muted-foreground w-full flex-wrap gap-1">
+          <TabsTrigger 
+            value="dashboard" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
             <BarChart3 className="h-4 w-4 ml-1" />
             דשבורד
           </TabsTrigger>
-          <TabsTrigger value="list" className="flex-1">משימות</TabsTrigger>
-          <TabsTrigger value="kanban" className="flex-1">
+          <TabsTrigger 
+            value="list" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
+            משימות
+          </TabsTrigger>
+          <TabsTrigger 
+            value="kanban" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
             <Map className="h-4 w-4 ml-1" />
             קנבן
           </TabsTrigger>
-          <TabsTrigger value="gantt" className="flex-1">Gantt</TabsTrigger>
-          <TabsTrigger value="calendar" className="flex-1">
+          <TabsTrigger 
+            value="gantt" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
+            Gantt
+          </TabsTrigger>
+          <TabsTrigger 
+            value="calendar" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
             <CalendarIcon className="h-4 w-4 ml-1" />
             לוח שנה
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex-1">אנליטיקס</TabsTrigger>
-          <TabsTrigger value="timeline" className="flex-1">ציר זמן</TabsTrigger>
-          <TabsTrigger value="roadmap" className="flex-1">מפת דרך</TabsTrigger>
-          <TabsTrigger value="spreadsheet" className="flex-1">
+          <TabsTrigger 
+            value="analytics" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
+            אנליטיקס
+          </TabsTrigger>
+          <TabsTrigger 
+            value="timeline" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
+            ציר זמן
+          </TabsTrigger>
+          <TabsTrigger 
+            value="roadmap" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
+            מפת דרך
+          </TabsTrigger>
+          <TabsTrigger 
+            value="spreadsheet" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
             <FileSpreadsheet className="h-4 w-4 ml-1" />
             טבלה
           </TabsTrigger>
-          <TabsTrigger value="export" className="flex-1">
+          <TabsTrigger 
+            value="export" 
+            className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
+          >
             <Download className="h-4 w-4 ml-1" />
             יצוא/יבוא
           </TabsTrigger>
