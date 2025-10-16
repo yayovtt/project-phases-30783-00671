@@ -8,8 +8,7 @@ import { format } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CardSkeleton } from '@/components/ui/loading-skeleton';
-import { CreateFolderDialog } from './folders/CreateFolderDialog';
-import { ManageFoldersDialog } from './folders/ManageFoldersDialog';
+import { FolderManager } from './FolderManager';
 import { useToast } from '@/hooks/use-toast';
 
 interface Project {
@@ -61,12 +60,35 @@ export const ProjectsList = () => {
     },
   });
 
-  // DEBUG: Logging for component render
-  console.log('[ProjectsList] Component rendered', {
-    projectsCount: projects?.length,
-    foldersCount: folders?.length,
-    timestamp: new Date().toISOString()
+  const moveToFolder = useMutation({
+    mutationFn: async ({ projectId, folderId }: { projectId: string; folderId: string | null }) => {
+      const { error } = await supabase
+        .from('projects')
+        .update({ folder_id: folderId })
+        .eq('id', projectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast({ title: 'הפרויקט הועבר בהצלחה' });
+    },
   });
+
+  const handleDragStart = (e: React.DragEvent, projectId: string) => {
+    e.dataTransfer.setData('projectId', projectId);
+  };
+
+  const handleDrop = (e: React.DragEvent, folderId: string | null) => {
+    e.preventDefault();
+    const projectId = e.dataTransfer.getData('projectId');
+    if (projectId) {
+      moveToFolder.mutate({ projectId, folderId });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
 
   const projectsWithoutFolder = projects?.filter(p => !p.folder_id) || [];
   const projectsByFolder = folders?.reduce((acc, folder) => {
@@ -96,25 +118,17 @@ export const ProjectsList = () => {
     );
   }
 
-  const renderProject = (project: Project, index: number) => {
-    console.log('[renderProject] Rendering project', { 
-      projectId: project.id, 
-      clientName: project.client_name,
-      index 
-    });
-    
-    return (
-      <Card
-        key={project.id}
-        className="hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group hover-lift overflow-hidden"
-        onClick={() => {
-          console.log('[ProjectCard] Clicked', { projectId: project.id });
-          navigate(`/project/${project.id}`);
-        }}
-        style={{ animationDelay: `${index * 0.05}s` }}
-      >
-        <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-5 transition-opacity" />
-        <CardHeader className="relative z-10">
+  const renderProject = (project: Project, index: number) => (
+    <Card
+      key={project.id}
+      draggable
+      onDragStart={(e) => handleDragStart(e, project.id)}
+      className="hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-move group hover-lift overflow-hidden"
+      onClick={() => navigate(`/project/${project.id}`)}
+      style={{ animationDelay: `${index * 0.05}s` }}
+    >
+      <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-5 transition-opacity" />
+      <CardHeader className="relative z-10">
         <CardTitle className="flex items-center gap-2 text-lg">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
             <Building2 className="h-5 w-5 text-primary" />
@@ -148,8 +162,7 @@ export const ProjectsList = () => {
         </div>
       </CardContent>
     </Card>
-    );
-  };
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -159,8 +172,7 @@ export const ProjectsList = () => {
           <p className="text-sm text-muted-foreground mt-1">{projects.length} פרויקטים פעילים</p>
         </div>
         <div className="flex gap-2">
-          <CreateFolderDialog />
-          <ManageFoldersDialog />
+          <FolderManager />
           <Button onClick={() => navigate('/project/new')} variant="gradient" className="shadow-lg">
             <Plus className="ml-2 h-4 w-4" />
             פרויקט חדש
@@ -171,17 +183,13 @@ export const ProjectsList = () => {
       {/* Folders */}
       {folders && folders.length > 0 && (
         <div className="space-y-4">
-          {folders.map((folder) => {
-            console.log('[Folder] Rendering folder', { 
-              folderId: folder.id, 
-              folderName: folder.name 
-            });
-            
-            return (
-              <div
-                key={folder.id}
-                className="border-2 border-dashed rounded-lg p-4 transition-colors"
-              >
+          {folders.map((folder) => (
+            <div
+              key={folder.id}
+              onDrop={(e) => handleDrop(e, folder.id)}
+              onDragOver={handleDragOver}
+              className="border-2 border-dashed rounded-lg p-4 transition-colors hover:border-primary/50 hover:bg-primary/5"
+            >
               <div className="flex items-center gap-2 mb-4">
                 <FolderOpen className="h-5 w-5" style={{ color: folder.color }} />
                 <h3 className="text-lg font-semibold">{folder.name}</h3>
@@ -198,26 +206,24 @@ export const ProjectsList = () => {
                   גרור פרויקטים לכאן
                 </p>
               )}
-              </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
       {/* Projects without folder */}
-      {projectsWithoutFolder.length > 0 && (() => {
-        console.log('[ProjectsWithoutFolder] Rendering', { 
-          count: projectsWithoutFolder.length 
-        });
-        return (
-          <div className="border-2 border-dashed rounded-lg p-4 transition-colors">
-            <h3 className="text-lg font-semibold mb-4">פרויקטים ללא תיקייה</h3>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {projectsWithoutFolder.map((project, index) => renderProject(project, index))}
-            </div>
+      {projectsWithoutFolder.length > 0 && (
+        <div
+          onDrop={(e) => handleDrop(e, null)}
+          onDragOver={handleDragOver}
+          className="border-2 border-dashed rounded-lg p-4 transition-colors hover:border-primary/50"
+        >
+          <h3 className="text-lg font-semibold mb-4">פרויקטים ללא תיקייה</h3>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {projectsWithoutFolder.map((project, index) => renderProject(project, index))}
           </div>
-        );
-      })()}
+        </div>
+      )}
     </div>
   );
 };
