@@ -9,6 +9,7 @@ import { ArrowRight, Building2, MapPin } from 'lucide-react';
 import { WorkflowCategories } from '@/components/project/WorkflowCategories';
 import { NotificationCenter } from '@/components/project/NotificationCenter';
 import { ThemeSelector } from '@/components/project/ThemeSelector';
+import { FileImporter } from '@/components/dashboard/FileImporter';
 
 interface Project {
   id: string;
@@ -83,6 +84,7 @@ const ProjectView = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <FileImporter projectId={project.id} />
               <ThemeSelector />
               <NotificationCenter />
             </div>
