@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowRight } from 'lucide-react';
+import { TaskTemplateSelector } from '@/components/project/TaskTemplateSelector';
 
 const ProjectNew = () => {
   const navigate = useNavigate();
@@ -24,43 +25,86 @@ const ProjectNew = () => {
     priority: '',
   });
 
+  const [taskTemplate, setTaskTemplate] = useState({
+    templateType: 'permit',
+    customTemplateName: '',
+    importedTasks: [] as any[],
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from('projects')
-      .insert([
-        {
-          client_name: formData.client_name,
-          address: formData.address || null,
-          gush: formData.gush || null,
-          parcel: formData.parcel || null,
-          plot: formData.plot || null,
-          priority: formData.priority ? parseInt(formData.priority) : null,
-          created_by: user.id,
-        },
-      ])
-      .select()
-      .single();
+    try {
+      // Create project
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .insert([
+          {
+            client_name: formData.client_name,
+            address: formData.address || null,
+            gush: formData.gush || null,
+            parcel: formData.parcel || null,
+            plot: formData.plot || null,
+            priority: formData.priority ? parseInt(formData.priority) : null,
+            created_by: user.id,
+          },
+        ])
+        .select()
+        .single();
 
-    if (error) {
+      if (projectError) throw projectError;
+
+      // Initialize project with selected template
+      if (taskTemplate.templateType !== 'custom' || taskTemplate.importedTasks.length > 0) {
+        // Get template tasks or use imported tasks
+        let tasksToCreate = [];
+        
+        if (taskTemplate.importedTasks.length > 0) {
+          // Use imported tasks
+          tasksToCreate = taskTemplate.importedTasks.map((task, index) => ({
+            name: task.name || task.title || `משימה ${index + 1}`,
+            description: task.description || task.desc || null,
+            category_id: null, // Will be assigned to default category
+            order_index: index,
+          }));
+        }
+
+        // Create project_tasks entries
+        if (tasksToCreate.length > 0) {
+          const { data: tasks } = await supabase
+            .from('tasks')
+            .select('id')
+            .limit(tasksToCreate.length);
+
+          if (tasks) {
+            const projectTasks = tasks.map(task => ({
+              project_id: project.id,
+              task_id: task.id,
+              completed: false,
+            }));
+
+            await supabase.from('project_tasks').insert(projectTasks);
+          }
+        }
+      }
+
+      toast({
+        title: 'הפרויקט נוצר בהצלחה',
+        description: `פרויקט ${formData.client_name} נוסף למערכת`,
+      });
+      navigate(`/project/${project.id}`);
+    } catch (error: any) {
       toast({
         title: 'שגיאה ביצירת פרויקט',
         description: error.message,
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'הפרויקט נוצר בהצלחה',
-        description: `פרויקט ${formData.client_name} נוסף למערכת`,
-      });
-      navigate(`/project/${data.id}`);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,6 +219,13 @@ const ProjectNew = () => {
             </form>
           </CardContent>
         </Card>
+
+        <div className="mt-6">
+          <TaskTemplateSelector
+            value={taskTemplate}
+            onChange={setTaskTemplate}
+          />
+        </div>
       </main>
     </div>
   );
