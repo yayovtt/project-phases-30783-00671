@@ -45,11 +45,27 @@ export const TaskTemplateSelector = ({ value, onChange }: TaskTemplateSelectorPr
       const text = await file.text();
       let tasks: any[] = [];
 
-      if (file.name.endsWith('.csv')) {
+      const lowerName = file.name.toLowerCase();
+
+      if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+        // Parse Excel using xlsx
+        const XLSX = await import('xlsx');
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[firstSheet];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (rows.length > 0) {
+          const firstKeys = Object.keys(rows[0] || {});
+          tasks = rows.map((row, index) => ({
+            name: row.name || row.title || (firstKeys.length ? row[firstKeys[0]] : '') || `משימה ${index + 1}`,
+            description: row.description || row.desc || '',
+          }));
+        }
+      } else if (lowerName.endsWith('.csv')) {
         // Parse CSV
         const lines = text.split('\n').filter(line => line.trim());
         const headers = lines[0].split(',').map(h => h.trim());
-        
         tasks = lines.slice(1).map(line => {
           const values = line.split(',').map(v => v.trim());
           const task: any = {};
@@ -58,21 +74,23 @@ export const TaskTemplateSelector = ({ value, onChange }: TaskTemplateSelectorPr
           });
           return task;
         });
-      } else if (file.name.endsWith('.json')) {
+      } else if (lowerName.endsWith('.json')) {
         // Parse JSON
         tasks = JSON.parse(text);
-      } else if (file.name.endsWith('.txt')) {
+      } else if (lowerName.endsWith('.txt')) {
         // Parse TXT - each line is a task name
-        tasks = text.split('\n')
+        tasks = text
+          .split('\n')
+          .map(l => l.replace(/^[\uFEFF\u200B]+/, '')) // strip BOM/ZWSP
           .filter(line => line.trim())
           .map(line => ({ name: line.trim() }));
-      } else if (file.name.endsWith('.xml')) {
+      } else if (lowerName.endsWith('.xml')) {
         // Basic XML parsing
         const parser = new DOMParser();
         const xml = parser.parseFromString(text, 'text/xml');
         const taskElements = xml.querySelectorAll('task');
-        tasks = Array.from(taskElements).map(elem => ({
-          name: elem.getAttribute('name') || elem.textContent?.trim() || '',
+        tasks = Array.from(taskElements).map((elem, index) => ({
+          name: elem.getAttribute('name') || elem.textContent?.trim() || `משימה ${index + 1}`,
           description: elem.getAttribute('description') || '',
         }));
       }

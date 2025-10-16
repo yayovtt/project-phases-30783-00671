@@ -57,38 +57,41 @@ const ProjectNew = () => {
 
       if (projectError) throw projectError;
 
-      // Initialize project with selected template
-      if (taskTemplate.templateType !== 'custom' || taskTemplate.importedTasks.length > 0) {
-        // Get template tasks or use imported tasks
-        let tasksToCreate = [];
-        
-        if (taskTemplate.importedTasks.length > 0) {
-          // Use imported tasks
-          tasksToCreate = taskTemplate.importedTasks.map((task, index) => ({
-            name: task.name || task.title || `משימה ${index + 1}`,
-            description: task.description || task.desc || null,
-            category_id: null, // Will be assigned to default category
-            order_index: index,
-          }));
-        }
+      // If user imported tasks, create them and link to this project
+      if (taskTemplate.importedTasks.length > 0) {
+        console.log('[ProjectNew] Creating tasks from imported list...', taskTemplate.importedTasks);
 
-        // Create project_tasks entries
-        if (tasksToCreate.length > 0) {
-          const { data: tasks } = await supabase
-            .from('tasks')
-            .select('id')
-            .limit(tasksToCreate.length);
+        // Try to get a default category to avoid NULL constraints if any
+        const { data: defaultCat } = await supabase
+          .from('categories')
+          .select('id')
+          .order('order_index', { ascending: true })
+          .limit(1);
+        const defaultCategoryId = defaultCat?.[0]?.id ?? null;
 
-          if (tasks) {
-            const projectTasks = tasks.map(task => ({
-              project_id: project.id,
-              task_id: task.id,
-              completed: false,
-            }));
+        const tasksToInsert = taskTemplate.importedTasks.map((task, index) => ({
+          name: task.name || task.title || `משימה ${index + 1}`,
+          description: task.description || task.desc || null,
+          category_id: defaultCategoryId,
+          order_index: index + 1,
+          is_required: false,
+        }));
 
-            await supabase.from('project_tasks').insert(projectTasks);
-          }
-        }
+        const { data: insertedTasks, error: insertTasksError } = await supabase
+          .from('tasks')
+          .insert(tasksToInsert)
+          .select('id');
+        if (insertTasksError) throw insertTasksError;
+
+        const projectTasks = insertedTasks.map((t) => ({
+          project_id: project.id,
+          task_id: t.id,
+          completed: false,
+        }));
+
+        const { error: linkError } = await supabase.from('project_tasks').insert(projectTasks);
+        if (linkError) throw linkError;
+        console.log('[ProjectNew] Linked', projectTasks.length, 'tasks to project');
       }
 
       toast({
