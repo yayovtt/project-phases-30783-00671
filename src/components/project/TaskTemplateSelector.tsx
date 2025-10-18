@@ -15,6 +15,7 @@ interface TaskTemplateOption {
 }
 
 const PREDEFINED_TEMPLATES: TaskTemplateOption[] = [
+  { id: 'none', name: 'פרויקט ריק', description: 'התחל עם פרויקט ריק ללא משימות' },
   { id: 'permit', name: 'משימות להיתר', description: 'רשימת משימות סטנדרטית לקבלת היתר בנייה' },
   { id: 'taba', name: 'משימות לשינוי תבע', description: 'רשימת משימות לתהליך שינוי בתבע' },
   { id: 'execution', name: 'משימות לביצוע', description: 'רשימת משימות למעקב ביצוע עבודות' },

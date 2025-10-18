@@ -53,6 +53,7 @@ interface TaskManagementDialogProps {
   categoryId: string;
   categoryName: string;
   tasks: Task[];
+  projectId?: string;
 }
 
 export const TaskManagementDialog = ({
@@ -61,6 +62,7 @@ export const TaskManagementDialog = ({
   categoryId,
   categoryName,
   tasks,
+  projectId,
 }: TaskManagementDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,20 +83,40 @@ export const TaskManagementDialog = ({
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const maxOrder = Math.max(...categoryTasks.map((t) => t.order_index), 0);
-      const { error } = await supabase.from('tasks').insert({
-        category_id: categoryId,
-        name: data.name,
-        description: data.description || null,
-        is_required: data.is_required,
-        order_index: maxOrder + 1,
-        due_date: data.due_date || null,
-        estimated_hours: data.estimated_hours ? parseInt(data.estimated_hours) : null,
-        priority: data.priority,
-      });
+      const { data: newTask, error } = await supabase
+        .from('tasks')
+        .insert({
+          category_id: categoryId,
+          name: data.name,
+          description: data.description || null,
+          is_required: data.is_required,
+          order_index: maxOrder + 1,
+          due_date: data.due_date || null,
+          estimated_hours: data.estimated_hours ? parseInt(data.estimated_hours) : null,
+          priority: data.priority,
+        })
+        .select('id')
+        .single();
       if (error) throw error;
+      
+      // If projectId is provided, link the task to the project
+      if (projectId && newTask) {
+        const { error: linkError } = await supabase
+          .from('project_tasks')
+          .insert({
+            project_id: projectId,
+            task_id: newTask.id,
+            completed: false,
+          });
+        if (linkError) throw linkError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      }
       toast({ title: 'המשימה נוספה בהצלחה' });
       setIsAdding(false);
       setFormData({ name: '', description: '', is_required: false, due_date: '', estimated_hours: '', priority: 'medium' });
@@ -121,6 +143,9 @@ export const TaskManagementDialog = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      }
       toast({ title: 'המשימה עודכנה בהצלחה' });
       setEditingTask(null);
     },
@@ -136,6 +161,10 @@ export const TaskManagementDialog = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+      }
       toast({ title: 'המשימה נמחקה בהצלחה' });
       setDeletingTaskId(null);
     },

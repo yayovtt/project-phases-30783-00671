@@ -457,6 +457,7 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
           categoryId={selectedCategoryId}
           categoryName={categories.find(c => c.id === selectedCategoryId)?.display_name || ''}
           tasks={allTasks}
+          projectId={projectId}
         />
       )}
 

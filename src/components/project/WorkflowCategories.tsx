@@ -136,11 +136,26 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
   });
 
   const { data: tasks } = useSyncedQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', projectId],
     queryFn: async () => {
+      // Only fetch tasks that are linked to this project
+      const { data: projectTasksIds, error: ptError } = await supabase
+        .from('project_tasks')
+        .select('task_id')
+        .eq('project_id', projectId);
+      
+      if (ptError) throw ptError;
+      
+      const taskIds = projectTasksIds?.map(pt => pt.task_id) || [];
+      
+      if (taskIds.length === 0) {
+        return [] as Task[];
+      }
+      
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
+        .in('id', taskIds)
         .order('order_index');
 
       if (error) throw error;
@@ -500,7 +515,8 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                             handleOpenTaskManagement(category.id, category.display_name)
                           }
                         >
-                          <Settings className="h-4 w-4" />
+                          <Settings className="h-4 w-4 ml-1" />
+                          ניהול משימות
                         </Button>
                       )}
                     </div>
@@ -942,6 +958,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           categoryId={selectedCategoryForTasks.id}
           categoryName={selectedCategoryForTasks.name}
           tasks={tasks}
+          projectId={projectId}
         />
       )}
 

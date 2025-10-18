@@ -26,7 +26,7 @@ const ProjectNew = () => {
   });
 
   const [taskTemplate, setTaskTemplate] = useState({
-    templateType: 'permit',
+    templateType: 'none',
     customTemplateName: '',
     importedTasks: [] as any[],
   });
