@@ -426,14 +426,45 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
             allTasks={tasks}
             categories={categories}
             onStatusChange={async (taskId, newStatus) => {
-              const projectTask = projectTasks?.find(pt => pt.task_id === taskId);
-              if (projectTask) {
+              const existing = projectTasks?.find(pt => pt.task_id === taskId);
+              
+              // Optimistic update
+              queryClient.setQueryData(['project-tasks', projectId], (old: any) => {
+                if (!old) return old;
+                if (existing) {
+                  return old.map((pt: any) =>
+                    pt.id === existing.id ? { ...pt, status: newStatus } : pt
+                  );
+                } else {
+                  return [
+                    ...old,
+                    {
+                      id: `temp-${taskId}`,
+                      project_id: projectId,
+                      task_id: taskId,
+                      status: newStatus,
+                      completed: newStatus === 'completed',
+                      notes: null,
+                    },
+                  ];
+                }
+              });
+              
+              if (existing) {
                 await supabase
                   .from('project_tasks')
                   .update({ status: newStatus })
-                  .eq('id', projectTask.id);
-                queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+                  .eq('id', existing.id);
+              } else {
+                await supabase
+                  .from('project_tasks')
+                  .insert({
+                    project_id: projectId,
+                    task_id: taskId,
+                    status: newStatus,
+                  });
               }
+              queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
             }}
             onTaskClick={(task) => {
               setSelectedTask({ id: task.id, name: task.name, notes: null });

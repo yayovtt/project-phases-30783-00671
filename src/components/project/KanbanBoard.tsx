@@ -170,7 +170,7 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
   const handleDrop = async (status: string) => {
     if (draggedTask && draggedTask.status !== status) {
       try {
-        await onStatusChange(draggedTask.id, status);
+        onStatusChange(draggedTask.id, status);
         toast({
           title: 'המשימה עודכנה',
           description: `המשימה הועברה בהצלחה`,
@@ -213,6 +213,29 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
           <Plus className="h-4 w-4 ml-1" />
           הוסף קטגוריה
         </Button>
+        {isAdmin && categories && categories.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 ml-1" />
+                הוסף משימות
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover z-50">
+              {categories.map((c: any) => (
+                <DropdownMenuItem
+                  key={c.id}
+                  onClick={() => {
+                    setSelectedCategoryId(c.id);
+                    setTaskDialogOpen(true);
+                  }}
+                >
+                  {c.display_name || c.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         {isAdmin && (
           <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
             <DialogTrigger asChild>
