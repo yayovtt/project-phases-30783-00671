@@ -209,19 +209,18 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
   return (
     <div className="space-y-4">
       <div className="flex justify-end gap-2">
-        <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm">
-          <Plus className="h-4 w-4 ml-1" />
-          הוסף קטגוריה
-        </Button>
-        {isAdmin && categories && categories.length > 0 && (
+        {/* Toolbar */}
+        <div className="flex gap-1 ml-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 ml-1" />
-                הוסף משימות
+              <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף">
+                <Plus className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-popover z-50">
+            <DropdownMenuContent align="start" className="bg-popover z-50">
+              <DropdownMenuItem onClick={() => setCategoryDialogOpen(true)}>
+                + קטגוריה
+              </DropdownMenuItem>
               {categories.map((c: any) => (
                 <DropdownMenuItem
                   key={c.id}
@@ -230,12 +229,18 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
                     setTaskDialogOpen(true);
                   }}
                 >
-                  {c.display_name || c.name}
+                  + משימה - {c.display_name || c.name}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
+          <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+            <Edit className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
         {isAdmin && (
           <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
             <DialogTrigger asChild>

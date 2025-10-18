@@ -1,7 +1,8 @@
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
 
@@ -76,7 +77,21 @@ export const TimelineView = ({ categories, isTaskCompleted, onToggleTask }: Time
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-0 px-4">
+    <div className="max-w-4xl mx-auto space-y-6 px-4">
+      {/* Toolbar */}
+      <div className="flex gap-2 items-center">
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף">
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+          <Edit className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      
+      <div className="space-y-0">
       {categories.map((category, index) => {
         const progress = getCategoryProgress(category);
         const status = getCategoryStatus(category);
@@ -216,6 +231,7 @@ export const TimelineView = ({ categories, isTaskCompleted, onToggleTask }: Time
           </div>
         );
       })}
+      </div>
     </div>
   );
 };

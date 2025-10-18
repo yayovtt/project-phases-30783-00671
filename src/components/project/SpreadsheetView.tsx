@@ -634,14 +634,29 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5" />
-                תצוגת טבלה
-              </CardTitle>
-              <CardDescription>
-                ערוך משימות ישירות בטבלה וייצא ל-Excel או Google Sheets
-              </CardDescription>
+            <div className="flex items-center gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-5 w-5" />
+                  תצוגת טבלה
+                </CardTitle>
+                <CardDescription>
+                  ערוך משימות ישירות בטבלה וייצא ל-Excel או Google Sheets
+                </CardDescription>
+              </div>
+              
+              {/* Toolbar */}
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף" onClick={addNewRow}>
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
             <div className="flex gap-2">
               {(sortConfig || multiSortConfig.length > 0) && (

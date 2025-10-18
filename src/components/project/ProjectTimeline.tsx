@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, Target, TrendingUp, TrendingDown, Minus, Plus, Edit, Trash2 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { he } from 'date-fns/locale';
 
@@ -113,6 +114,19 @@ export function ProjectTimeline({ project, categories, allTasks, projectTasks }:
 
   return (
     <div className="space-y-6">
+      {/* Toolbar */}
+      <div className="flex gap-2 items-center">
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף">
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+          <Edit className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      
       {/* Overall Project Timeline */}
       <Card className="shadow-glow">
         <CardHeader>

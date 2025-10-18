@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, ChevronLeft, Plus, Edit, Bell } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronLeft, Plus, Edit, Bell, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -96,10 +96,15 @@ export function RoadmapView({ categories, projectId, tasks }: RoadmapViewProps) 
           </p>
           
           {isAdmin && (
-            <div className="flex justify-center gap-2 flex-wrap">
-              <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm">
-                <Plus className="h-4 w-4 ml-1" />
-                הוסף קטגוריה
+            <div className="flex justify-center gap-2">
+              <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף קטגוריה" onClick={() => setCategoryDialogOpen(true)}>
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           )}
