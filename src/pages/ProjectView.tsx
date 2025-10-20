@@ -64,28 +64,28 @@ const ProjectView = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle" dir="rtl">
       <header className="border-b bg-card/80 backdrop-blur-md shadow-md sticky top-0 z-20">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="hover-lift">
-              <ArrowRight className="ml-2 h-4 w-4" />
-              חזור לפרויקטים
-            </Button>
-            <div className="flex-1 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
+        <div className="container mx-auto px-4 py-4" dir="rtl">
+          <div className="flex flex-row-reverse items-center gap-4">
+            <div className="flex flex-row-reverse items-center gap-2">
+              <NotificationCenter />
+              <ThemeSelector />
+            </div>
+            <div className="flex-1 animate-fade-in text-right">
+              <div className="flex flex-row-reverse items-center gap-2">
                 <h1 className="text-xl font-bold gradient-text">{project.client_name}</h1>
+                <Building2 className="h-5 w-5 text-primary" />
               </div>
               {project.address && (
-                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                  <MapPin className="h-3 w-3" />
+                <p className="text-sm text-muted-foreground flex flex-row-reverse items-center gap-1 mt-1">
                   {project.address}
+                  <MapPin className="h-3 w-3" />
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <ThemeSelector />
-              <NotificationCenter />
-            </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="hover-lift">
+              <ArrowRight className="mr-2 h-4 w-4" />
+              חזור לפרויקטים
+            </Button>
           </div>
         </div>
       </header>

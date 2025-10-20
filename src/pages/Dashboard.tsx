@@ -49,14 +49,14 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold gradient-text">מערכת ניהול פרויקטים</h1>
             <p className="text-sm text-muted-foreground mt-1">ניהול שלבי עבודה אדריכליים מתקדם</p>
           </div>
-          <div className="flex items-center gap-3 animate-fade-in">
-            <Button onClick={() => navigate('/project/new')} variant="gradient" size="lg" className="shadow-lg">
-              <Plus className="ml-2 h-5 w-5" />
-              פרויקט חדש
-            </Button>
+          <div className="flex flex-row-reverse items-center gap-3 animate-fade-in">
             <Button onClick={handleSignOut} variant="outline" size="lg" className="hover-lift">
-              <LogOut className="ml-2 h-5 w-5" />
+              <LogOut className="mr-2 h-5 w-5" />
               התנתק
+            </Button>
+            <Button onClick={() => navigate('/project/new')} variant="gradient" size="lg" className="shadow-lg">
+              <Plus className="mr-2 h-5 w-5" />
+              פרויקט חדש
             </Button>
           </div>
         </div>

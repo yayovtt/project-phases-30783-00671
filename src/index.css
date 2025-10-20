@@ -157,6 +157,35 @@ All colors MUST be HSL.
     text-align: right;
   }
 
+  /* RTL alignment for all components */
+  [dir="rtl"] * {
+    text-align: right;
+  }
+
+  [dir="rtl"] .flex {
+    flex-direction: row-reverse;
+  }
+
+  [dir="rtl"] .grid {
+    direction: rtl;
+  }
+
+  /* Icon spacing for RTL */
+  [dir="rtl"] svg {
+    margin-right: 0 !important;
+    margin-left: 0.5rem;
+  }
+
+  [dir="rtl"] button svg:first-child {
+    margin-left: 0.5rem;
+    margin-right: 0;
+  }
+
+  [dir="rtl"] button svg:last-child {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;

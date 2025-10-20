@@ -207,10 +207,10 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end gap-2">
+    <div className="space-y-4" dir="rtl">
+      <div className="flex flex-row-reverse justify-end gap-2">
         {/* Toolbar */}
-        <div className="flex gap-1 ml-auto">
+        <div className="flex flex-row-reverse gap-1 mr-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף">

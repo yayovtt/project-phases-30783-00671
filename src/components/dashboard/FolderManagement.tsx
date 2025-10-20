@@ -111,16 +111,16 @@ export const FolderManagement = () => {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-row-reverse items-center gap-2" dir="rtl">
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
-            <FolderPlus className="ml-2 h-4 w-4" />
+            <FolderPlus className="mr-2 h-4 w-4" />
             תיקייה חדשה
           </Button>
         </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent dir="rtl">
+          <DialogHeader className="text-right">
             <DialogTitle>יצירת תיקייה חדשה</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
@@ -158,15 +158,14 @@ export const FolderManagement = () => {
       </Dialog>
 
       {folders && folders.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-row-reverse items-center gap-2 flex-wrap">
           {folders.map((folder) => (
             <div
               key={folder.id}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md border"
+              className="flex flex-row-reverse items-center gap-2 px-3 py-1.5 rounded-md border"
               style={{ borderColor: folder.color || '#6B7280' }}
             >
-              <span className="text-sm font-medium">{folder.name}</span>
-              <div className="flex gap-1">
+              <div className="flex flex-row-reverse gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -188,6 +187,7 @@ export const FolderManagement = () => {
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
+              <span className="text-sm font-medium">{folder.name}</span>
             </div>
           ))}
         </div>

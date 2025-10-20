@@ -224,18 +224,18 @@ export const ProjectsList = () => {
   const projectsWithoutFolder = projects?.filter(p => !p.folder_id) || [];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="space-y-6 animate-fade-in" dir="rtl">
+      <div className="flex flex-row-reverse items-center justify-between">
+        <div className="text-right">
           <h2 className="text-2xl font-bold gradient-text">הפרויקטים שלי</h2>
           <p className="text-sm text-muted-foreground mt-1">{projects?.length || 0} פרויקטים פעילים</p>
         </div>
-        <div className="flex items-center gap-2">
-          <FolderManagement />
+        <div className="flex flex-row-reverse items-center gap-2">
           <Button onClick={() => navigate('/project/new')} variant="gradient" className="shadow-lg">
-            <Plus className="ml-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" />
             פרויקט חדש
           </Button>
+          <FolderManagement />
         </div>
       </div>
 

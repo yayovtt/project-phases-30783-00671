@@ -332,7 +332,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
       />
 
       <Tabs defaultValue="list" className="w-full" dir="rtl">
-        <TabsList className="hidden md:inline-flex h-auto items-center justify-center rounded-xl bg-gradient-to-r from-card to-card/80 backdrop-blur-sm shadow-lg border-2 border-primary/10 p-2 text-muted-foreground w-full flex-wrap gap-1">
+        <TabsList className="hidden md:inline-flex h-auto items-center justify-center rounded-xl bg-gradient-to-r from-card to-card/80 backdrop-blur-sm shadow-lg border-2 border-primary/10 p-2 text-muted-foreground w-full flex-wrap gap-1" dir="rtl">
           <TabsTrigger 
             value="dashboard" 
             className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow transition-all duration-300 hover:scale-105 rounded-lg font-semibold py-2.5"
