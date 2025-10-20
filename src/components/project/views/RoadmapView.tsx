@@ -97,13 +97,13 @@ export function RoadmapView({ categories, projectId, tasks }: RoadmapViewProps) 
           
           {isAdmin && (
             <div className="flex justify-center gap-2">
-              <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף קטגוריה" onClick={() => setCategoryDialogOpen(true)}>
+              <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף" onClick={() => setCategoryDialogOpen(true)}>
                 <Plus className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+              <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה" onClick={() => setCategoryDialogOpen(true)}>
                 <Edit className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+              <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה" disabled>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>

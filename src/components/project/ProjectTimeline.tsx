@@ -116,13 +116,13 @@ export function ProjectTimeline({ project, categories, allTasks, projectTasks }:
     <div className="space-y-6">
       {/* Toolbar */}
       <div className="flex gap-2 items-center">
-        <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף">
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף" disabled>
           <Plus className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה" disabled>
           <Edit className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+        <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה" disabled>
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>

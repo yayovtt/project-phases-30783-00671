@@ -650,10 +650,10 @@ export const SpreadsheetView = ({ projectId }: SpreadsheetViewProps) => {
                 <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף" onClick={addNewRow}>
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+                <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה" disabled>
                   <Edit2 className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+                <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה" disabled>
                   <X className="h-3.5 w-3.5" />
                 </Button>
               </div>

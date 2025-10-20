@@ -7,7 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map, FileSpreadsheet, Edit3, Trash2 } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map, FileSpreadsheet, Edit3, Trash2, Plus, Palette } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
@@ -315,14 +316,6 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
     <div className="space-y-6" dir="rtl">
       <OfflineIndicator />
       
-      {isAdmin && (
-        <div className="flex justify-start">
-          <Button onClick={() => setCategoryManagementOpen(true)} variant="outline">
-            <Settings className="mr-2 h-4 w-4" />
-            ניהול קטגוריות
-          </Button>
-        </div>
-      )}
 
       <TaskFilters
         searchQuery={searchQuery}
@@ -489,6 +482,42 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
         </TabsContent>
 
         <TabsContent value="list" className="space-y-4">
+          {isAdmin && (
+            <div className="flex justify-end gap-2 mb-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="ml-2 h-4 w-4" />
+                    הוסף
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setCategoryManagementOpen(true)}>
+                    <Plus className="ml-2 h-4 w-4" />
+                    קטגוריה חדשה
+                  </DropdownMenuItem>
+                  {categories && categories.length > 0 && categories.map((cat) => (
+                    <DropdownMenuItem
+                      key={cat.id}
+                      onClick={() => handleOpenTaskManagement(cat.id, cat.display_name)}
+                    >
+                      <Plus className="ml-2 h-4 w-4" />
+                      משימה ל{cat.display_name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="outline" size="sm" onClick={() => setCategoryManagementOpen(true)}>
+                <Palette className="ml-2 h-4 w-4" />
+                צבעים
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setCategoryManagementOpen(true)}>
+                <Settings className="ml-2 h-4 w-4" />
+                עריכה
+              </Button>
+            </div>
+          )}
+          
           {categories.map((category) => {
             const categoryTasks = filteredTasks.filter((t) => t.category_id === category.id);
             if (categoryTasks.length === 0) return null;
@@ -507,18 +536,6 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                       )}
                       <CardTitle>{category.display_name}</CardTitle>
                       <Badge variant="secondary">{categoryTasks.length} משימות</Badge>
-                      {isAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleOpenTaskManagement(category.id, category.display_name)
-                          }
-                        >
-                          <Settings className="h-4 w-4 ml-1" />
-                          ניהול משימות
-                        </Button>
-                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">{progress}%</span>

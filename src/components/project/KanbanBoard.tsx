@@ -234,10 +234,22 @@ export const KanbanBoard = ({ tasks, onStatusChange, onTaskClick, projectId, all
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 px-2" 
+            title="עריכה"
+            onClick={() => setCategoryDialogOpen(true)}
+          >
             <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 px-2" 
+            title="מחיקה"
+            onClick={() => setManageDialogOpen(true)}
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
