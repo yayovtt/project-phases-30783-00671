@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Plus, Edit, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Edit, Trash2, CheckSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -28,10 +28,13 @@ interface TimelineViewProps {
   categories: Category[];
   isTaskCompleted: (taskId: string) => boolean;
   onToggleTask: (taskId: string, completed: boolean) => void;
+  onOpenTaskManagement?: (categoryId: string, categoryName: string) => void;
+  onOpenCategoryManagement?: () => void;
 }
 
-export const TimelineView = ({ categories, isTaskCompleted, onToggleTask }: TimelineViewProps) => {
+export const TimelineView = ({ categories, isTaskCompleted, onToggleTask, onOpenTaskManagement, onOpenCategoryManagement }: TimelineViewProps) => {
   const [openCategories, setOpenCategories] = useState<string[]>(categories.map((c) => c.id));
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
   const toggleCategory = (categoryId: string) => {
     setOpenCategories((prev) =>
@@ -76,19 +79,78 @@ export const TimelineView = ({ categories, isTaskCompleted, onToggleTask }: Time
     }
   };
 
+  const toggleTaskSelection = (taskId: string) => {
+    setSelectedTasks(prev =>
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    selectedTasks.forEach(taskId => {
+      // You would implement actual delete logic here
+      console.log('Delete task:', taskId);
+    });
+    setSelectedTasks([]);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 px-4">
       {/* Toolbar */}
-      <div className="flex gap-2 items-center">
-        <Button variant="ghost" size="sm" className="h-8 px-2" title="הוסף" disabled>
+      <div className="flex flex-row-reverse gap-2 items-center">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 px-2 gap-1" 
+          title="הוסף קטגוריה"
+          onClick={onOpenCategoryManagement}
+        >
           <Plus className="h-3.5 w-3.5" />
+          <span className="text-xs">קטגוריה</span>
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 px-2" title="עריכה" disabled>
+        
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 px-2" 
+          title="עריכה"
+          onClick={onOpenCategoryManagement}
+        >
           <Edit className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 px-2" title="מחיקה" disabled>
+        
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 px-2" 
+          title="מחיקה"
+          onClick={onOpenCategoryManagement}
+        >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 px-2 gap-1" 
+          title="בחירה מרובה"
+          onClick={() => setSelectedTasks([])}
+        >
+          <CheckSquare className="h-3.5 w-3.5" />
+          <span className="text-xs">({selectedTasks.length})</span>
+        </Button>
+        
+        {selectedTasks.length > 0 && (
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="h-8 px-2" 
+            title="מחק נבחרים"
+            onClick={handleBulkDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5 ml-1" />
+            מחק {selectedTasks.length}
+          </Button>
+        )}
       </div>
       
       <div className="space-y-0">
@@ -188,13 +250,20 @@ export const TimelineView = ({ categories, isTaskCompleted, onToggleTask }: Time
                                 key={task.id}
                                 className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-all group"
                               >
-                                <Checkbox
-                                  checked={isTaskCompleted(task.id)}
-                                  onCheckedChange={(checked) =>
-                                    onToggleTask(task.id, checked as boolean)
-                                  }
-                                  className="mt-1"
-                                />
+                                 <div className="flex gap-2">
+                                   <Checkbox
+                                     checked={selectedTasks.includes(task.id)}
+                                     onCheckedChange={() => toggleTaskSelection(task.id)}
+                                     className="mt-1"
+                                   />
+                                   <Checkbox
+                                     checked={isTaskCompleted(task.id)}
+                                     onCheckedChange={(checked) =>
+                                       onToggleTask(task.id, checked as boolean)
+                                     }
+                                     className="mt-1"
+                                   />
+                                 </div>
                                 <div className="flex-1 space-y-1">
                                   <div className="flex items-center gap-2">
                                     <span

@@ -483,37 +483,58 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
 
         <TabsContent value="list" className="space-y-4">
           {isAdmin && (
-            <div className="flex justify-end gap-2 mb-4">
+            <div className="flex flex-row-reverse gap-2 mb-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Plus className="ml-2 h-4 w-4" />
-                    הוסף
+                  <Button variant="ghost" size="sm" className="h-8 px-2 gap-1">
+                    <Plus className="h-3.5 w-3.5" />
+                    <span className="text-xs">משימה</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setCategoryManagementOpen(true)}>
-                    <Plus className="ml-2 h-4 w-4" />
-                    קטגוריה חדשה
-                  </DropdownMenuItem>
-                  {categories && categories.length > 0 && categories.map((cat) => (
+                  {categories && categories.length > 0 ? categories.map((cat) => (
                     <DropdownMenuItem
                       key={cat.id}
                       onClick={() => handleOpenTaskManagement(cat.id, cat.display_name)}
                     >
-                      <Plus className="ml-2 h-4 w-4" />
-                      משימה ל{cat.display_name}
+                      הוסף משימה ל-{cat.display_name}
                     </DropdownMenuItem>
-                  ))}
+                  )) : (
+                    <DropdownMenuItem disabled>
+                      אין קטגוריות. הוסף קטגוריה תחילה
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" size="sm" onClick={() => setCategoryManagementOpen(true)}>
-                <Palette className="ml-2 h-4 w-4" />
-                צבעים
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2 gap-1"
+                onClick={() => setCategoryManagementOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="text-xs">קטגוריה</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setCategoryManagementOpen(true)}>
-                <Settings className="ml-2 h-4 w-4" />
-                עריכה
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2" 
+                title="עריכה"
+                onClick={() => setCategoryManagementOpen(true)}
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2" 
+                title="מחיקה"
+                onClick={() => setCategoryManagementOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           )}
@@ -876,6 +897,8 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
             onToggleTask={(taskId, completed) =>
               toggleTaskMutation.mutate({ taskId, completed })
             }
+            onOpenTaskManagement={handleOpenTaskManagement}
+            onOpenCategoryManagement={() => setCategoryManagementOpen(true)}
           />
         </TabsContent>
 
