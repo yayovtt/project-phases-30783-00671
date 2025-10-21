@@ -14,6 +14,7 @@ import { TaskNotesDialog } from './TaskNotesDialog';
 import { RoadmapView } from './views/RoadmapView';
 import { TimelineView } from './views/TimelineView';
 import { CategoryManagementDialog } from './CategoryManagementDialog';
+import { CategorySelector } from './CategorySelector';
 import { TaskManagementDialog } from './TaskManagementDialog';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { TaskFilters } from './TaskFilters';
@@ -92,6 +93,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
   });
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+  const [categorySelectorOpen, setCategorySelectorOpen] = useState(false);
   const [taskManagementOpen, setTaskManagementOpen] = useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [selectedTaskForReminder, setSelectedTaskForReminder] = useState<{
@@ -484,34 +486,11 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
         <TabsContent value="list" className="space-y-4">
           {isAdmin && (
             <div className="flex flex-row-reverse gap-2 mb-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 gap-1">
-                    <Plus className="h-3.5 w-3.5" />
-                    <span className="text-xs">משימה</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {categories && categories.length > 0 ? categories.map((cat) => (
-                    <DropdownMenuItem
-                      key={cat.id}
-                      onClick={() => handleOpenTaskManagement(cat.id, cat.display_name)}
-                    >
-                      הוסף משימה ל-{cat.display_name}
-                    </DropdownMenuItem>
-                  )) : (
-                    <DropdownMenuItem disabled>
-                      אין קטגוריות. הוסף קטגוריה תחילה
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="h-8 px-2 gap-1"
-                onClick={() => setCategoryManagementOpen(true)}
+                onClick={() => setCategorySelectorOpen(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span className="text-xs">קטגוריה</span>
@@ -559,6 +538,15 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
                       <Badge variant="secondary">{categoryTasks.length} משימות</Badge>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => handleOpenTaskManagement(category.id, category.display_name)}
+                        title="הוסף משימה"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                       <span className="text-sm text-muted-foreground">{progress}%</span>
                       <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
                         <div
@@ -985,6 +973,17 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
           isOpen={categoryManagementOpen}
           onClose={() => setCategoryManagementOpen(false)}
           categories={categories}
+        />
+      )}
+
+      {isAdmin && (
+        <CategorySelector
+          isOpen={categorySelectorOpen}
+          onClose={() => setCategorySelectorOpen(false)}
+          onSelectCategory={(categoryId, categoryName) => {
+            setSelectedCategoryForTasks({ id: categoryId, name: categoryName });
+            setTaskManagementOpen(true);
+          }}
         />
       )}
 
