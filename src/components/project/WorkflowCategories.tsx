@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map, FileSpreadsheet, Edit3, Trash2, Plus, Palette } from 'lucide-react';
+import { MessageSquare, ArrowRight, CheckCircle2, Circle, Settings, Download, Upload, Database, Calendar as CalendarIcon, Bell, Clock, BarChart3, Map, FileSpreadsheet, Edit3, Trash2, Plus, Palette, List, Table, Grid3x3, LayoutGrid } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { TaskNotesDialog } from './TaskNotesDialog';
@@ -94,6 +94,7 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [categorySelectorOpen, setCategorySelectorOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'table' | 'grid'>('list');
   const [taskManagementOpen, setTaskManagementOpen] = useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [selectedTaskForReminder, setSelectedTaskForReminder] = useState<{
@@ -486,7 +487,31 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
         <TabsContent value="list" className="space-y-4">
           {isAdmin && (
             <div className="flex flex-row-reverse gap-2 mb-4">
-              <Button 
+              <DropdownMenu dir="rtl">
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 px-2 gap-1">
+                    {viewMode === 'list' && <List className="h-3.5 w-3.5" />}
+                    {viewMode === 'table' && <Table className="h-3.5 w-3.5" />}
+                    {viewMode === 'grid' && <Grid3x3 className="h-3.5 w-3.5" />}
+                    <span className="text-xs">תצוגה</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => setViewMode('list')}>
+                    <List className="h-4 w-4 mr-2" />
+                    רשימה
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setViewMode('table')}>
+                    <Table className="h-4 w-4 mr-2" />
+                    טבלה
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setViewMode('grid')}>
+                    <Grid3x3 className="h-4 w-4 mr-2" />
+                    רשת
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
                 variant="ghost" 
                 size="sm" 
                 className="h-8 px-2 gap-1"
@@ -518,7 +543,9 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
             </div>
           )}
           
-          {categories.map((category) => {
+          {viewMode === 'list' && (
+            <div className="space-y-4">
+              {categories.map((category) => {
             const categoryTasks = filteredTasks.filter((t) => t.category_id === category.id);
             if (categoryTasks.length === 0) return null;
             const progress = getCategoryProgress(category.id);
@@ -697,6 +724,82 @@ export const WorkflowCategories = ({ projectId }: WorkflowCategoriesProps) => {
               </Card>
             );
           })}
+            </div>
+          )}
+
+          {viewMode === 'table' && (
+            <SpreadsheetView projectId={projectId} />
+          )}
+
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredTasks.map((task) => {
+                const projectTask = projectTasks?.find(pt => pt.task_id === task.id);
+                const category = categories.find(c => c.id === task.category_id);
+                return (
+                  <Card key={task.id} className="p-4 hover:shadow-lg transition-shadow">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Checkbox
+                            checked={isTaskCompleted(task.id)}
+                            onCheckedChange={(checked) =>
+                              toggleTaskMutation.mutate({
+                                taskId: task.id,
+                                completed: checked as boolean,
+                              })
+                            }
+                          />
+                          <h3 className="font-medium truncate">{task.name}</h3>
+                        </div>
+                        {task.priority && (
+                          <Badge variant={
+                            task.priority === 'urgent' ? 'destructive' :
+                            task.priority === 'high' ? 'default' :
+                            task.priority === 'medium' ? 'secondary' : 'outline'
+                          }>
+                            {task.priority === 'urgent' ? 'דחוף' :
+                             task.priority === 'high' ? 'גבוה' :
+                             task.priority === 'medium' ? 'בינוני' : 'נמוך'}
+                          </Badge>
+                        )}
+                      </div>
+                      {category && (
+                        <div className="flex items-center gap-2">
+                          {category.color && (
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: category.color }}
+                            />
+                          )}
+                          <span className="text-xs text-muted-foreground">{category.display_name}</span>
+                        </div>
+                      )}
+                      {task.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {task.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between text-sm">
+                        {task.due_date && (
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <CalendarIcon className="h-3 w-3" />
+                            {new Date(task.due_date).toLocaleDateString('he-IL')}
+                          </span>
+                        )}
+                        {task.estimated_hours && (
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {task.estimated_hours}ש'
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="flow">
